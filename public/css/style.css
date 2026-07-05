@@ -1294,3 +1294,92 @@ table.admin-table tr:hover { background: rgba(192, 138, 33, 0.04); }
   font-size: 0.82rem;
   color: var(--ink-soft);
 }
+
+/* =========================================================================
+   Mobile polish round: Safari zoom fix, guest banner, filter bar,
+   room-type-grid overflow, and button wrapping.
+   ========================================================================= */
+
+/* iOS Safari zooms in on any input/select/textarea with font-size under 16px.
+   Forcing 16px here (not smaller) stops that entirely. */
+select, input, textarea {
+  font-size: 16px;
+}
+
+/* Buttons should never wrap their own label */
+.btn { white-space: nowrap; }
+
+/* Guest access banner — stacked, full-width buttons on mobile so nothing
+   gets squeezed into wrapping ("Sign up" breaking onto two lines) */
+.access-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: rgba(180, 140, 40, 0.12);
+  border: 1px solid rgba(180, 140, 40, 0.35);
+  border-radius: 12px;
+  padding: 1.1rem 1.3rem;
+  margin: 0 1.5rem 1.4rem;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+.access-banner-actions { display: flex; gap: 0.6rem; flex-shrink: 0; }
+
+@media (max-width: 700px) {
+  .access-banner {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: left;
+    margin: 0 1rem 1.2rem;
+    padding: 1.1rem;
+    gap: 0.9rem;
+  }
+  .access-banner-actions {
+    justify-content: stretch;
+    width: 100%;
+  }
+  .access-banner-actions .btn {
+    flex: 1;
+    padding: 0.7rem 0.8rem;
+  }
+}
+
+/* Filter bar — a touch more breathing room and a cleaner edge-to-edge feel on mobile */
+@media (max-width: 700px) {
+  .filter-bar {
+    margin: 0 1rem 2rem;
+    padding: 1.2rem;
+    border-radius: 14px;
+    gap: 0.9rem;
+  }
+  .filter-field { min-width: 100%; }
+  .filter-bar .filter-actions { width: 100%; }
+  .filter-bar .filter-actions .btn { flex: 1; }
+}
+
+/* Room-type grid on the post/edit-listing forms — CSS Grid items default to
+   min-width:auto, which lets a number input's intrinsic size force the
+   track wider than its column, overflowing the page on narrow screens.
+   min-width:0 lets them actually shrink to fit. */
+.room-type-row,
+.room-type-row .rt-field {
+  min-width: 0;
+}
+.room-type-row input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .room-type-grid { gap: 0.9rem; }
+}
+
+/* Auth card (login/signup) — a little tighter on very small phones so the
+   role-toggle pill doesn't feel cramped */
+@media (max-width: 420px) {
+  .auth-card { padding: 1.7rem 1.3rem; }
+  .role-toggle label { font-size: 0.78rem; padding: 0.6rem 0.35rem; }
+}

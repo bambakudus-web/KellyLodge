@@ -38,6 +38,7 @@ function renderNav(user) {
     if (user.role === 'hoster') links.push(`<a href="/post.html">Post a listing</a>`);
     if (user.role === 'hoster') links.push(`<a href="/dashboard.html">Dashboard</a>`);
     if (user.role === 'admin') links.push(`<a href="/admin.html">Admin</a>`);
+    links.push(`<a href="/account.html">Account</a>`);
   }
 
   const userBlockHTML = user ? `
