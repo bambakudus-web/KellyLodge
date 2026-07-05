@@ -116,22 +116,18 @@ router.post('/', requireRole('hoster', 'admin'), uploadSingleImage, async (req, 
     try {
       roomTypesInput = JSON.parse(req.body.room_types || '[]');
     } catch {
-      connection.release();
       return res.status(400).json({ error: 'Invalid room type data.' });
     }
 
     if (!title || !area) {
-      connection.release();
       return res.status(400).json({ error: 'Missing required fields.' });
     }
 
     if (!VALID_AREAS.includes(area)) {
-      connection.release();
       return res.status(400).json({ error: `Area must be one of: ${VALID_AREAS.join(', ')}` });
     }
 
     if (!Array.isArray(roomTypesInput) || roomTypesInput.length === 0) {
-      connection.release();
       return res.status(400).json({ error: 'Add at least one room type with a price and quantity.' });
     }
 
@@ -144,19 +140,15 @@ router.post('/', requireRole('hoster', 'admin'), uploadSingleImage, async (req, 
       const quantity = Number(rt.quantity);
 
       if (!VALID_ROOM_TYPES.includes(roomType)) {
-        connection.release();
         return res.status(400).json({ error: `Room type must be one of: ${VALID_ROOM_TYPES.join(', ')}` });
       }
       if (seenTypes.has(roomType)) {
-        connection.release();
         return res.status(400).json({ error: `"${roomType}" was entered more than once. Combine it into a single row.` });
       }
       if (isNaN(price) || price < MIN_PRICE) {
-        connection.release();
         return res.status(400).json({ error: `"${roomType}" must be priced at GH₵${MIN_PRICE.toLocaleString()} or more.` });
       }
       if (!Number.isInteger(quantity) || quantity <= 0 || quantity > 2000) {
-        connection.release();
         return res.status(400).json({ error: `Enter a valid quantity (1–2000) for "${roomType}".` });
       }
 
@@ -254,14 +246,12 @@ router.put('/:id', requireRole('hoster', 'admin'), uploadSingleImage, async (req
 
     const [existingRows] = await connection.query('SELECT owner_id, image_url FROM listings WHERE id = ?', [id]);
     if (existingRows.length === 0) {
-      connection.release();
       return res.status(404).json({ error: 'Listing not found.' });
     }
 
     const isOwner = existingRows[0].owner_id === req.session.user.id;
     const isAdmin = req.session.user.role === 'admin';
     if (!isOwner && !isAdmin) {
-      connection.release();
       return res.status(403).json({ error: 'You can only edit your own listings.' });
     }
 
@@ -269,20 +259,16 @@ router.put('/:id', requireRole('hoster', 'admin'), uploadSingleImage, async (req
     try {
       roomTypesInput = JSON.parse(req.body.room_types || '[]');
     } catch {
-      connection.release();
       return res.status(400).json({ error: 'Invalid room type data.' });
     }
 
     if (!title || !area) {
-      connection.release();
       return res.status(400).json({ error: 'Missing required fields.' });
     }
     if (!VALID_AREAS.includes(area)) {
-      connection.release();
       return res.status(400).json({ error: `Area must be one of: ${VALID_AREAS.join(', ')}` });
     }
     if (!Array.isArray(roomTypesInput) || roomTypesInput.length === 0) {
-      connection.release();
       return res.status(400).json({ error: 'Add at least one room type with a price and quantity.' });
     }
 
@@ -294,19 +280,15 @@ router.put('/:id', requireRole('hoster', 'admin'), uploadSingleImage, async (req
       const quantity = Number(rt.quantity);
 
       if (!VALID_ROOM_TYPES.includes(roomType)) {
-        connection.release();
         return res.status(400).json({ error: `Room type must be one of: ${VALID_ROOM_TYPES.join(', ')}` });
       }
       if (seenTypes.has(roomType)) {
-        connection.release();
         return res.status(400).json({ error: `"${roomType}" was entered more than once.` });
       }
       if (isNaN(price) || price < MIN_PRICE) {
-        connection.release();
         return res.status(400).json({ error: `"${roomType}" must be priced at GH₵${MIN_PRICE.toLocaleString()} or more.` });
       }
       if (!Number.isInteger(quantity) || quantity <= 0 || quantity > 2000) {
-        connection.release();
         return res.status(400).json({ error: `Enter a valid quantity (1–2000) for "${roomType}".` });
       }
       seenTypes.add(roomType);
@@ -326,7 +308,7 @@ router.put('/:id', requireRole('hoster', 'admin'), uploadSingleImage, async (req
       if (!stillPresent && bookedCount > 0) {
         await connection.rollback();
         return res.status(400).json({
-          error: `Cannot remove "${existing.room_type}" — it has ${bookedCount} active booking(s). Cancel those first.`,
+          error: `Cannot remove "${existing.room_type}" (it has ${bookedCount} active booking(s)). Cancel those first.`,
         });
       }
     }
@@ -338,7 +320,7 @@ router.put('/:id', requireRole('hoster', 'admin'), uploadSingleImage, async (req
         if (rt.quantity < bookedCount) {
           await connection.rollback();
           return res.status(400).json({
-            error: `"${rt.roomType}" has ${bookedCount} active booking(s) — quantity can't go below that.`,
+            error: `"${rt.roomType}" has ${bookedCount} active booking(s), quantity can't go below that.`,
           });
         }
         const newAvailable = rt.quantity - bookedCount;

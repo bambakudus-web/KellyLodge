@@ -84,7 +84,7 @@ async function sendPasswordResetEmail({ toEmail, toName, resetUrl }) {
       <p>We received a request to reset your password. This link expires in 1 hour:</p>
       <p><a href="${resetUrl}" style="display:inline-block;background:#c9992e;color:#111;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:bold;">Reset my password</a></p>
       <p>Or paste this link into your browser: ${resetUrl}</p>
-      <p>If you didn't request this, you can safely ignore this email — your password won't change.</p>
+      <p>If you didn't request this, you can safely ignore this email (your password won't change).</p>
     </div>
   `;
   await sendViaBrevo({ toEmail, toName, subject: 'Reset your KellyLodge password', html });

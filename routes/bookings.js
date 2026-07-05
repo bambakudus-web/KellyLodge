@@ -13,7 +13,6 @@ router.post('/', requireRole('student'), async (req, res) => {
     const studentId = req.session.user.id;
 
     if (!room_type_id) {
-      connection.release();
       return res.status(400).json({ error: 'room_type_id is required.' });
     }
 
