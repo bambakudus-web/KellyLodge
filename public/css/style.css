@@ -591,8 +591,27 @@ select:focus, input:focus, textarea:focus, button:focus {
   padding: 4.5rem 1.5rem 6rem;
   overflow: hidden;
 }
+.landing-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url('https://images.unsplash.com/photo-1764760764956-fcb78be107a5?w=1600&q=70&auto=format&fit=crop');
+  background-size: cover;
+  background-position: center 30%;
+  opacity: 0.32;
+  z-index: 0;
+}
+.landing-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, var(--night) 38%, rgba(19,26,46,0.72) 68%, rgba(19,26,46,0.4) 100%);
+  z-index: 0;
+}
 
 .landing-hero .hero-inner {
+  position: relative;
+  z-index: 1;
   max-width: 1120px;
   margin: 0 auto;
   display: grid;
@@ -1595,3 +1614,19 @@ select, input, textarea {
   .review-date { margin-left: 0; }
   .gallery-thumb { width: 64px; height: 48px; }
 }
+
+/* ---------- Set-as-cover button on the edit-listing photo grid ---------- */
+.photo-cover-btn {
+  position: absolute;
+  bottom: 0.3rem;
+  left: 0.3rem;
+  background: rgba(20, 20, 20, 0.75);
+  color: white;
+  border: none;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.photo-cover-btn:hover { background: var(--brass-dark); }

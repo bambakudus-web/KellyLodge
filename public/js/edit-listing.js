@@ -13,6 +13,8 @@ const MAX_PHOTOS = 5;
 
 // listing_photo ids the hoster has marked for removal in this editing session
 let pendingRemovePhotoIds = [];
+// listing_photo id the hoster picked as the new cover (null = leave as-is)
+let pendingCoverPhotoId = null;
 
 function getListingIdFromUrl() {
   return new URLSearchParams(window.location.search).get('id');
@@ -62,7 +64,9 @@ function existingPhotosHTML(photos) {
       ${photos.map((p, i) => `
         <div class="photo-preview-item" data-photo-id="${p.id}">
           <img src="${p.image_url}" alt="Photo ${i + 1}" />
-          ${i === 0 ? '<span class="photo-preview-cover">Cover</span>' : ''}
+          ${i === 0
+            ? '<span class="photo-preview-cover">Cover</span>'
+            : '<button type="button" class="photo-cover-btn" data-photo-id="' + p.id + '">Set as cover</button>'}
           <button type="button" class="photo-remove-btn" data-photo-id="${p.id}" title="Remove this photo">&times;</button>
         </div>
       `).join('')}
@@ -187,12 +191,55 @@ function getSelectedArea() {
   return areaSelect.value;
 }
 
+function selectCoverPhoto(photoId) {
+  pendingCoverPhotoId = photoId;
+
+  // Move the "Cover" badge to this tile and put a "Set as cover" button
+  // back on whichever tile used to have it, purely visual until the form
+  // is actually saved.
+  document.querySelectorAll('#existing-photo-grid .photo-preview-item').forEach((item) => {
+    const itemId = Number(item.getAttribute('data-photo-id'));
+    const existingBadge = item.querySelector('.photo-preview-cover');
+    const existingBtn = item.querySelector('.photo-cover-btn');
+
+    if (itemId === photoId) {
+      if (existingBtn) existingBtn.remove();
+      if (!existingBadge) {
+        const badge = document.createElement('span');
+        badge.className = 'photo-preview-cover';
+        badge.textContent = 'Cover';
+        item.insertBefore(badge, item.querySelector('.photo-remove-btn'));
+      }
+    } else if (existingBadge) {
+      existingBadge.remove();
+      if (!existingBtn) {
+        const newBtn = document.createElement('button');
+        newBtn.type = 'button';
+        newBtn.className = 'photo-cover-btn';
+        newBtn.setAttribute('data-photo-id', itemId);
+        newBtn.textContent = 'Set as cover';
+        item.insertBefore(newBtn, item.querySelector('.photo-remove-btn'));
+        newBtn.addEventListener('click', () => selectCoverPhoto(itemId));
+      }
+    }
+  });
+}
+
 function attachExistingPhotoRemoval() {
   document.querySelectorAll('.photo-remove-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const photoId = Number(btn.getAttribute('data-photo-id'));
       pendingRemovePhotoIds.push(photoId);
+      if (pendingCoverPhotoId === photoId) pendingCoverPhotoId = null;
       btn.closest('.photo-preview-item').remove();
+    });
+  });
+}
+
+function attachSetCoverHandler() {
+  document.querySelectorAll('.photo-cover-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      selectCoverPhoto(Number(btn.getAttribute('data-photo-id')));
     });
   });
 }
@@ -243,6 +290,7 @@ async function init() {
   container.innerHTML = formHTML(listing);
   attachAreaToggle();
   attachExistingPhotoRemoval();
+  attachSetCoverHandler();
   attachNewPhotoPreview();
 
   const form = document.getElementById('edit-form');
@@ -284,6 +332,7 @@ async function init() {
     if (distance) formData.append('distance_minutes', distance);
     formData.append('room_types', JSON.stringify(roomTypes));
     formData.append('remove_photo_ids', JSON.stringify(pendingRemovePhotoIds));
+    if (pendingCoverPhotoId !== null) formData.append('set_cover_photo_id', pendingCoverPhotoId);
     photoFiles.forEach((file) => formData.append('photos', file));
 
     try {

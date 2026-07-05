@@ -358,6 +358,12 @@ router.put('/:id', requireRole('hoster', 'admin'), uploadMultipleImages, async (
       removePhotoIds = [];
     }
 
+    let setCoverPhotoId = null;
+    if (req.body.set_cover_photo_id !== undefined && req.body.set_cover_photo_id !== '') {
+      const parsedCoverId = Number(req.body.set_cover_photo_id);
+      if (Number.isInteger(parsedCoverId)) setCoverPhotoId = parsedCoverId;
+    }
+
     if (!title) {
       return res.status(400).json({ error: 'Missing required fields.' });
     }
@@ -462,6 +468,18 @@ router.put('/:id', requireRole('hoster', 'admin'), uploadMultipleImages, async (
       await connection.query(
         'INSERT INTO listing_photos (listing_id, image_url, sort_order) VALUES ?',
         [photoValues]
+      );
+    }
+
+    // Setting a cover: sort_order -1 always sorts first regardless of what
+    // the other photos are currently numbered, so it doesn't need a full
+    // renumbering pass. Only applies to a photo that's still actually on
+    // this listing (ignores an id that was just removed above, or belongs
+    // to a different listing).
+    if (setCoverPhotoId && !removePhotoIds.includes(setCoverPhotoId)) {
+      await connection.query(
+        'UPDATE listing_photos SET sort_order = -1 WHERE id = ? AND listing_id = ?',
+        [setCoverPhotoId, id]
       );
     }
 
