@@ -9,6 +9,8 @@ const authRouter = require('./routes/auth');
 const listingsRouter = require('./routes/listings');
 const adminRouter = require('./routes/admin');
 const bookingsRouter = require('./routes/bookings');
+const reviewsRouter = require('./routes/reviews');
+const favoritesRouter = require('./routes/favorites');
 const { csrfProtection } = require('./middleware/csrf');
 
 if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
@@ -53,6 +55,8 @@ app.use('/api/auth', authRouter);
 app.use('/api/listings', listingsRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/bookings', bookingsRouter);
+app.use('/api/reviews', reviewsRouter);
+app.use('/api/favorites', favoritesRouter);
 
 // Simple health check — useful for confirming Railway deployment is alive
 app.get('/api/health', (req, res) => {

@@ -35,6 +35,7 @@ function renderNav(user) {
     links.push(`<a href="/signup.html" class="cta">Sign up</a>`);
   } else {
     if (user.role === 'student') links.push(`<a href="/mybookings.html">My Bookings</a>`);
+    if (user.role === 'student') links.push(`<a href="/favorites.html">Favorites</a>`);
     if (user.role === 'hoster') links.push(`<a href="/post.html">Post a listing</a>`);
     if (user.role === 'hoster') links.push(`<a href="/dashboard.html">Dashboard</a>`);
     if (user.role === 'admin') links.push(`<a href="/admin.html">Admin</a>`);

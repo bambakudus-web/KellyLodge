@@ -18,17 +18,18 @@
 
   <section class="hero">
     <h1>Find a hostel near KsTU</h1>
-    <p>Browse real off-campus listings in Fante New Town, Asafo, and Amakom — filter by area and price to find what fits.</p>
+    <p>Browse real off-campus listings around Kumasi Technical University, filter by area and price, or search by name to find what fits.</p>
   </section>
 
   <form class="filter-bar" id="filter-form">
     <div class="filter-field">
+      <label for="search">Search</label>
+      <input type="text" id="search" name="search" placeholder="Hostel name or area" />
+    </div>
+    <div class="filter-field">
       <label for="area">Area</label>
       <select id="area" name="area">
         <option value="">All areas</option>
-        <option value="Fante New Town">Fante New Town</option>
-        <option value="Asafo">Asafo</option>
-        <option value="Amakom">Amakom</option>
       </select>
     </div>
     <div class="filter-field">
@@ -55,6 +56,7 @@
 
   <script src="/js/nav.js"></script>
   <script src="/js/area.js"></script>
+  <script src="/js/csrf.js"></script>
   <script src="/js/main.js"></script>
 </body>
 </html>

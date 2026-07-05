@@ -32,6 +32,8 @@ function listingsSectionHTML(listings) {
       <span class="dl-title">${escapeHTML(listing.title)}</span>
       ${areaChipHTML(listing.area)}
       <span class="dl-rooms">${listing.rooms_available} of ${listing.rooms_total} rooms available</span>
+      <span class="dl-views">👁 ${listing.views || 0} view${listing.views === 1 ? '' : 's'}</span>
+      ${listing.review_count > 0 ? `<span class="dl-rating">★ ${Number(listing.avg_rating).toFixed(1)} (${listing.review_count})</span>` : ''}
       <span class="dl-status ${listing.status}">${listing.status}</span>
     </a>
   `).join('');

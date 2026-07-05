@@ -64,4 +64,25 @@ function uploadSingleImage(req, res, next) {
   });
 }
 
-module.exports = { uploadSingleImage };
+// Same idea, but for a hostel's photo gallery — accepts up to 5 files under
+// the "photos" field, each checked with the same real-signature test.
+function uploadMultipleImages(req, res, next) {
+  upload.array('photos', 5)(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ error: err.message || 'Could not upload photos.' });
+    }
+
+    const files = req.files || [];
+    for (const file of files) {
+      const filePath = path.join(uploadDir, file.filename);
+      if (!isValidImageSignature(filePath)) {
+        for (const f of files) fs.unlink(path.join(uploadDir, f.filename), () => {});
+        return res.status(400).json({ error: 'One of those files does not look like a valid image.' });
+      }
+    }
+
+    next();
+  });
+}
+
+module.exports = { uploadSingleImage, uploadMultipleImages };

@@ -8,6 +8,8 @@ const VALID_ROOM_TYPES = [
   'Shared (3 in a room)',
   'Shared (4 in a room)',
 ];
+const KNOWN_AREAS = ['Fante New Town', 'Asafo', 'Amakom'];
+const MAX_PHOTOS = 5;
 
 function roomTypeRowsHTML() {
   return VALID_ROOM_TYPES.map((type, i) => `
@@ -25,10 +27,19 @@ function roomTypeRowsHTML() {
   `).join('');
 }
 
+function areaOptionsHTML() {
+  const known = KNOWN_AREAS.map((a) => `<option value="${a}">${a}</option>`).join('');
+  return `
+    <option value="">Select an area</option>
+    ${known}
+    <option value="__other__">Other (type it in)</option>
+  `;
+}
+
 const FORM_HTML = `
   <div class="form-wrap">
     <h2>Post your hostel</h2>
-    <p class="form-note">Fill in the details below. Description and photo are optional.</p>
+    <p class="form-note">Fill in the details below. Description and photos are optional.</p>
 
     <div class="form-error" id="form-error"></div>
     <div class="form-success" id="form-success"></div>
@@ -46,12 +57,14 @@ const FORM_HTML = `
 
       <div class="form-group">
         <label for="area">Area</label>
-        <select id="area" name="area" required>
-          <option value="">Select an area</option>
-          <option value="Fante New Town">Fante New Town</option>
-          <option value="Asafo">Asafo</option>
-          <option value="Amakom">Amakom</option>
-        </select>
+        <select id="area" name="area" required>${areaOptionsHTML()}</select>
+        <input type="text" id="area-other" name="area-other" placeholder="Type the area name" style="display:none; margin-top: 0.5rem;" />
+      </div>
+
+      <div class="form-group">
+        <label for="distance">Walking distance from KsTU main gate (minutes)</label>
+        <input type="number" id="distance" name="distance" min="0" max="180" step="1" placeholder="e.g. 10" />
+        <span class="form-note">Optional, but it helps students judge the commute at a glance.</span>
       </div>
 
       <div class="form-group">
@@ -63,10 +76,10 @@ const FORM_HTML = `
       </div>
 
       <div class="form-group">
-        <label for="image">Hostel photo</label>
-        <input type="file" id="image" name="image" accept="image/*" />
-        <span class="form-note">Upload a photo from your device (JPG or PNG, up to 5MB).</span>
-        <img id="image-preview" class="image-preview" style="display: none;" alt="Preview" />
+        <label for="photos">Hostel photos</label>
+        <input type="file" id="photos" name="photos" accept="image/*" multiple />
+        <span class="form-note">Up to ${MAX_PHOTOS} photos (JPG or PNG, up to 5MB each). The first one becomes the cover photo.</span>
+        <div id="photo-preview-grid" class="photo-preview-grid"></div>
       </div>
 
       <p class="form-note">Your contact details on the listing will use your account name and phone number.</p>
@@ -116,22 +129,56 @@ function collectRoomTypes() {
   return { roomTypes, hasInvalidPrice };
 }
 
-function attachImagePreview() {
-  const input = document.getElementById('image');
-  const preview = document.getElementById('image-preview');
+function attachAreaToggle() {
+  const areaSelect = document.getElementById('area');
+  const areaOther = document.getElementById('area-other');
+
+  areaSelect.addEventListener('change', () => {
+    if (areaSelect.value === '__other__') {
+      areaOther.style.display = 'block';
+      areaOther.focus();
+    } else {
+      areaOther.style.display = 'none';
+      areaOther.value = '';
+    }
+  });
+}
+
+function getSelectedArea() {
+  const areaSelect = document.getElementById('area');
+  const areaOther = document.getElementById('area-other');
+  if (areaSelect.value === '__other__') return areaOther.value.trim();
+  return areaSelect.value;
+}
+
+function attachPhotoPreview() {
+  const input = document.getElementById('photos');
+  const grid = document.getElementById('photo-preview-grid');
 
   input.addEventListener('change', () => {
-    const file = input.files[0];
-    if (!file) {
-      preview.style.display = 'none';
-      return;
+    grid.innerHTML = '';
+    const files = Array.from(input.files).slice(0, MAX_PHOTOS);
+
+    if (input.files.length > MAX_PHOTOS) {
+      const notice = document.createElement('p');
+      notice.className = 'form-note';
+      notice.textContent = `Only the first ${MAX_PHOTOS} photos will be uploaded.`;
+      grid.appendChild(notice);
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      preview.src = e.target.result;
-      preview.style.display = 'block';
-    };
-    reader.readAsDataURL(file);
+
+    files.forEach((file, i) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'photo-preview-item';
+        wrap.innerHTML = `
+          <img src="${e.target.result}" alt="Preview ${i + 1}" />
+          ${i === 0 ? '<span class="photo-preview-cover">Cover</span>' : ''}
+        `;
+        grid.appendChild(wrap);
+      };
+      reader.readAsDataURL(file);
+    });
   });
 }
 
@@ -147,8 +194,9 @@ function attachFormHandler() {
 
     const title = document.getElementById('title').value.trim();
     const description = document.getElementById('description').value.trim();
-    const area = document.getElementById('area').value;
-    const imageFile = document.getElementById('image').files[0];
+    const area = getSelectedArea();
+    const distance = document.getElementById('distance').value;
+    const photoFiles = Array.from(document.getElementById('photos').files).slice(0, MAX_PHOTOS);
     const { roomTypes, hasInvalidPrice } = collectRoomTypes();
 
     if (!title || !area) {
@@ -173,8 +221,9 @@ function attachFormHandler() {
     formData.append('title', title);
     formData.append('description', description);
     formData.append('area', area);
+    if (distance) formData.append('distance_minutes', distance);
     formData.append('room_types', JSON.stringify(roomTypes));
-    if (imageFile) formData.append('image', imageFile);
+    photoFiles.forEach((file) => formData.append('photos', file));
 
     try {
       const res = await secureFetch('/api/listings', {
@@ -209,7 +258,8 @@ async function init() {
 
   container.innerHTML = FORM_HTML;
   attachFormHandler();
-  attachImagePreview();
+  attachAreaToggle();
+  attachPhotoPreview();
 }
 
 init();
