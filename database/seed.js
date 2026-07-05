@@ -122,8 +122,8 @@ async function seed() {
 
     for (const user of users) {
       await pool.query(
-        `INSERT INTO users (name, email, password_hash, phone, role) VALUES (?, ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE name = VALUES(name)`,
+        `INSERT INTO users (name, email, password_hash, phone, role, email_verified) VALUES (?, ?, ?, ?, ?, TRUE)
+         ON DUPLICATE KEY UPDATE name = VALUES(name), email_verified = TRUE`,
         [user.name, user.email, passwordHash, user.phone, user.role]
       );
       const [rows] = await pool.query('SELECT id FROM users WHERE email = ?', [user.email]);
