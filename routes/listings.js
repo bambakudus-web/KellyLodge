@@ -14,7 +14,6 @@ const VALID_ROOM_TYPES = [
   'Shared (3 in a room)',
   'Shared (4 in a room)',
 ];
-const MIN_PRICE = 3000;
 
 const ROOMS_SUBQUERY = `
   (SELECT COALESCE(SUM(available_quantity), 0) FROM room_types WHERE room_types.listing_id = listings.id) AS rooms_available,
@@ -145,8 +144,8 @@ router.post('/', requireRole('hoster', 'admin'), uploadSingleImage, async (req, 
       if (seenTypes.has(roomType)) {
         return res.status(400).json({ error: `"${roomType}" was entered more than once. Combine it into a single row.` });
       }
-      if (isNaN(price) || price < MIN_PRICE) {
-        return res.status(400).json({ error: `"${roomType}" must be priced at GH₵${MIN_PRICE.toLocaleString()} or more.` });
+      if (isNaN(price) || price <= 0) {
+        return res.status(400).json({ error: `"${roomType}" needs a valid price greater than 0.` });
       }
       if (!Number.isInteger(quantity) || quantity <= 0 || quantity > 2000) {
         return res.status(400).json({ error: `Enter a valid quantity (1–2000) for "${roomType}".` });
@@ -285,8 +284,8 @@ router.put('/:id', requireRole('hoster', 'admin'), uploadSingleImage, async (req
       if (seenTypes.has(roomType)) {
         return res.status(400).json({ error: `"${roomType}" was entered more than once.` });
       }
-      if (isNaN(price) || price < MIN_PRICE) {
-        return res.status(400).json({ error: `"${roomType}" must be priced at GH₵${MIN_PRICE.toLocaleString()} or more.` });
+      if (isNaN(price) || price <= 0) {
+        return res.status(400).json({ error: `"${roomType}" needs a valid price greater than 0.` });
       }
       if (!Number.isInteger(quantity) || quantity <= 0 || quantity > 2000) {
         return res.status(400).json({ error: `Enter a valid quantity (1–2000) for "${roomType}".` });

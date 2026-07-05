@@ -8,7 +8,6 @@ const VALID_ROOM_TYPES = [
   'Shared (3 in a room)',
   'Shared (4 in a room)',
 ];
-const MIN_PRICE = 3000;
 
 function roomTypeRowsHTML() {
   return VALID_ROOM_TYPES.map((type, i) => `
@@ -16,7 +15,7 @@ function roomTypeRowsHTML() {
       <span class="rt-name">${type}</span>
       <div class="rt-field">
         <label for="rt-price-${i}">Price (GH₵/year)</label>
-        <input type="number" id="rt-price-${i}" class="rt-price" min="${MIN_PRICE}" step="0.01" placeholder="from ${MIN_PRICE}" />
+        <input type="number" id="rt-price-${i}" class="rt-price" min="1" step="0.01" placeholder="e.g. 3000" />
       </div>
       <div class="rt-field">
         <label for="rt-qty-${i}">Quantity</label>
@@ -57,7 +56,7 @@ const FORM_HTML = `
 
       <div class="form-group">
         <label>Room types &amp; availability</label>
-        <p class="form-note">Enter a price (GH₵${MIN_PRICE.toLocaleString()} minimum, per year) and quantity for each room type you offer — leave a type at 0 if you don't have it. If you have 300 rooms, this is where they all go, grouped by type.</p>
+        <p class="form-note">Enter a price (per year) and quantity for each room type you offer, leave a type at 0 if you don't have it. If you have 300 rooms, this is where they all go, grouped by type.</p>
         <div class="room-type-grid" id="room-type-grid">
           ${roomTypeRowsHTML()}
         </div>
@@ -102,7 +101,7 @@ function collectRoomTypes() {
     if (!priceInput.value && !qtyInput.value) return; // untouched row, skip silently
 
     if (quantity > 0) {
-      if (price < MIN_PRICE) {
+      if (isNaN(price) || price <= 0) {
         hasInvalidPrice = true;
         return;
       }
@@ -159,7 +158,7 @@ function attachFormHandler() {
     }
 
     if (hasInvalidPrice) {
-      errorBox.textContent = `Every room type needs a price of at least GH₵${MIN_PRICE.toLocaleString()}.`;
+      errorBox.textContent = 'Every room type needs a valid price greater than 0.';
       errorBox.style.display = 'block';
       return;
     }
