@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Browse hostels — KellyLodge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="logo">Kelly<span class="accent">Lodge</span></div>
+    <nav id="site-nav"></nav>
+  </header>
+
+  <section class="hero">
+    <h1>Find a hostel near KsTU</h1>
+    <p>Browse real off-campus listings in Fante New Town, Asafo, and Amakom — filter by area and price to find what fits.</p>
+  </section>
+
+  <form class="filter-bar" id="filter-form">
+    <div class="filter-field">
+      <label for="area">Area</label>
+      <select id="area" name="area">
+        <option value="">All areas</option>
+        <option value="Fante New Town">Fante New Town</option>
+        <option value="Asafo">Asafo</option>
+        <option value="Amakom">Amakom</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label for="minPrice">Min price (GH₵)</label>
+      <input type="number" id="minPrice" name="minPrice" min="0" placeholder="0" />
+    </div>
+    <div class="filter-field">
+      <label for="maxPrice">Max price (GH₵)</label>
+      <input type="number" id="maxPrice" name="maxPrice" min="0" placeholder="Any" />
+    </div>
+    <div class="filter-actions">
+      <button type="submit" class="btn btn-gold">Filter</button>
+      <button type="button" class="btn btn-outline" id="clear-filters">Clear</button>
+    </div>
+  </form>
+
+  <div id="listing-container">
+    <p class="state-message">Loading listings…</p>
+  </div>
+
+  <footer class="site-footer">
+    <strong>KellyLodge</strong> — a student project for Kumasi Technical University.
+  </footer>
+
+  <script src="/js/nav.js"></script>
+  <script src="/js/area.js"></script>
+  <script src="/js/main.js"></script>
+</body>
+</html>
