@@ -595,7 +595,7 @@ select:focus, input:focus, textarea:focus, button:focus {
   content: '';
   position: absolute;
   inset: 0;
-  background-image: url('https://images.unsplash.com/photo-1764760764956-fcb78be107a5?w=1600&q=75&auto=format&fit=crop');
+  background-image: url('/images/hero-room-desktop.jpg');
   background-size: cover;
   background-position: center 35%;
   z-index: 0;
@@ -729,6 +729,10 @@ select:focus, input:focus, textarea:focus, button:focus {
   .landing-hero .hero-inner { grid-template-columns: 1fr; }
   .key-board { height: 260px; margin-top: 1rem; }
   .key-board .keytag { width: 180px; }
+  .landing-hero::before {
+    background-image: url('/images/hero-room-mobile.jpg');
+    background-position: center 22%;
+  }
 }
 
 .landing-section {
