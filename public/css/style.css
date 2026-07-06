@@ -588,7 +588,7 @@ select:focus, input:focus, textarea:focus, button:focus {
   position: relative;
   background: var(--night);
   color: white;
-  padding: 4.5rem 1.5rem 6rem;
+  padding: 4.5rem 1.5rem 9rem;
   overflow: hidden;
 }
 .landing-hero::before {
@@ -597,7 +597,7 @@ select:focus, input:focus, textarea:focus, button:focus {
   inset: 0;
   background-image: url('/images/hero-room-desktop.avif');
   background-size: cover;
-  background-position: center 35%;
+  background-position: center 42%;
   z-index: 0;
 }
 .landing-hero::after {
