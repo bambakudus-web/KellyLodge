@@ -595,7 +595,7 @@ select:focus, input:focus, textarea:focus, button:focus {
   content: '';
   position: absolute;
   inset: 0;
-  background-image: url('/images/hero-room-desktop.jpg');
+  background-image: url('/images/hero-room-desktop.avif');
   background-size: cover;
   background-position: center 35%;
   z-index: 0;
@@ -730,7 +730,7 @@ select:focus, input:focus, textarea:focus, button:focus {
   .key-board { height: 260px; margin-top: 1rem; }
   .key-board .keytag { width: 180px; }
   .landing-hero::before {
-    background-image: url('/images/hero-room-mobile.jpg');
+    background-image: url('/images/hero-room-mobile.avif');
     background-position: center 22%;
   }
 }
