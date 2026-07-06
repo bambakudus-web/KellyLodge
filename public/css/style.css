@@ -655,15 +655,58 @@ select:focus, input:focus, textarea:focus, button:focus {
   height: 340px;
 }
 
+.key-board {
+  perspective: 1400px;
+}
+
 .key-board .keytag {
   position: absolute;
   width: 220px;
   padding: 1rem 1.1rem 1.1rem 2.2rem;
+  opacity: 0;
+  animation-fill-mode: forwards;
+  animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation-duration: 0.9s;
 }
 
-.key-board .keytag:nth-child(1) { top: 0; left: 10%; transform: rotate(-6deg); z-index: 3; }
-.key-board .keytag:nth-child(2) { top: 90px; left: 42%; transform: rotate(4deg); z-index: 2; }
-.key-board .keytag:nth-child(3) { top: 195px; left: 6%; transform: rotate(3deg); z-index: 1; }
+.key-board .keytag:nth-child(1) {
+  top: 0; left: 10%; z-index: 3;
+  animation-name: keytag-fly-front;
+  animation-delay: 0.55s;
+}
+.key-board .keytag:nth-child(2) {
+  top: 90px; left: 42%; z-index: 2;
+  animation-name: keytag-fly-top;
+  animation-delay: 0.28s;
+}
+.key-board .keytag:nth-child(3) {
+  top: 195px; left: 6%; z-index: 1;
+  animation-name: keytag-fly-side;
+  animation-delay: 0s;
+}
+
+/* Front card (Adom Hostel): swoops in from the right, slight depth pop */
+@keyframes keytag-fly-front {
+  0% { opacity: 0; transform: translate3d(160px, -50px, -80px) rotate(22deg) rotateY(35deg) scale(0.75); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) rotate(-6deg) rotateY(0deg) scale(1); }
+}
+/* Middle card (Nyame Nti Lodge): drops in from above */
+@keyframes keytag-fly-top {
+  0% { opacity: 0; transform: translate3d(20px, -160px, -60px) rotate(-24deg) rotateX(-30deg) scale(0.8); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) rotate(4deg) rotateX(0deg) scale(1); }
+}
+/* Back card (Rhema Hostel): slides in from the left, lands first */
+@keyframes keytag-fly-side {
+  0% { opacity: 0; transform: translate3d(-170px, 70px, -60px) rotate(-18deg) rotateY(-30deg) scale(0.8); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) rotate(3deg) rotateY(0deg) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .key-board .keytag { opacity: 1; animation: none; }
+  .key-board .keytag:nth-child(1) { transform: rotate(-6deg); }
+  .key-board .keytag:nth-child(2) { transform: rotate(4deg); }
+  .key-board .keytag:nth-child(3) { transform: rotate(3deg); }
+}
 
 .key-board .keytag::after {
   /* the ring/lanyard hint */
