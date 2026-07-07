@@ -1,4 +1,4 @@
-// listing.js — fetches and renders a single listing's detail page
+// listing.js: fetches and renders a single listing's detail page
 
 const detailContainer = document.getElementById('detail-container');
 const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600';

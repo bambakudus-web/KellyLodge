@@ -1,6 +1,6 @@
-// nav.js — shared across all pages. Checks session state and renders the nav accordingly.
+// nav.js: shared across all pages. Checks session state and renders the nav accordingly.
 
-// Self-contained escape helper — nav.js runs on pages that don't load area.js
+// Self-contained escape helper, nav.js runs on pages that don't load area.js
 // (landing, login, signup), so it can't rely on that file's escapeHTML.
 function navEscapeHTML(str) {
   if (str === null || str === undefined) return '';
@@ -61,7 +61,7 @@ function renderNav(user) {
     });
   }
 
-  // Hamburger toggle for small screens — only build it once
+  // Hamburger toggle for small screens, only build it once
   if (!header.querySelector('.nav-toggle')) {
     const toggle = document.createElement('button');
     toggle.className = 'nav-toggle';

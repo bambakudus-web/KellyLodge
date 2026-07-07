@@ -1,4 +1,4 @@
-// main.js — powers the homepage: fetch listings, render cards, handle filters, and paginate
+// main.js: powers the homepage: fetch listings, render cards, handle filters, and paginate
 
 const listingContainer = document.getElementById('listing-container');
 const filterForm = document.getElementById('filter-form');

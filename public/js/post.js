@@ -1,4 +1,4 @@
-// post.js — gates the post-a-listing page to hosters/admins, then handles submission
+// post.js: gates the post-a-listing page to hosters/admins, then handles submission
 
 const container = document.getElementById('post-container');
 

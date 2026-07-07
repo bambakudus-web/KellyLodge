@@ -1,4 +1,4 @@
-// signup.js — handles the signup form submission
+// signup.js: handles the signup form submission
 
 const form = document.getElementById('signup-form');
 const errorBox = document.getElementById('form-error');

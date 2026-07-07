@@ -1,4 +1,4 @@
-// bookings.js — powers the My Bookings page
+// bookings.js: powers the My Bookings page
 
 const bookingsContainer = document.getElementById('bookings-container');
 const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600';
@@ -33,7 +33,7 @@ function renderBookings(bookings) {
           <span class="tag">${b.room_type}</span>
         </div>
         <div class="price">GH₵ ${Number(b.price).toLocaleString()} <span class="unit">/ year</span></div>
-        <div class="booking-owner">Owner: ${escapeHTML(b.owner_name)} — <a href="tel:${b.owner_phone}">${b.owner_phone}</a></div>
+        <div class="booking-owner">Owner: ${escapeHTML(b.owner_name)}, <a href="tel:${b.owner_phone}">${b.owner_phone}</a></div>
       </div>
       <button class="btn btn-danger btn-small cancel-btn" data-booking-id="${b.id}">Cancel</button>
     </div>

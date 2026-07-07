@@ -1,7 +1,7 @@
-// area.js — shared helper: maps an area name to its wayfinding color-slug.
+// area.js: shared helper: maps an area name to its wayfinding color-slug.
 // Loaded before any script that renders area chips (main.js, listing.js, admin.js, post.js).
 
-// Escapes user-entered text before it's dropped into innerHTML — a hostel
+// Escapes user-entered text before it's dropped into innerHTML, a hostel
 // title or student name is free text typed by someone else, so it must
 // never be trusted as raw HTML.
 function escapeHTML(str) {

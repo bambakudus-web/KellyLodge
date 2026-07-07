@@ -1,4 +1,4 @@
-// csrf.js — fetches and caches a CSRF token, wraps fetch for state-changing requests
+// csrf.js: fetches and caches a CSRF token, wraps fetch for state-changing requests
 
 let csrfTokenCache = null;
 

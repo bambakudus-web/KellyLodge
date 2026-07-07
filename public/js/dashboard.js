@@ -1,4 +1,4 @@
-// dashboard.js — powers the hoster/admin dashboard
+// dashboard.js: powers the hoster/admin dashboard
 
 const dashboardContainer = document.getElementById('dashboard-container');
 
@@ -51,7 +51,7 @@ function bookingsSectionHTML(bookings) {
     return `
       <div class="dashboard-section">
         <h2>Bookings received</h2>
-        <p class="state-message">No bookings yet — they'll show up here the moment a student books a room.</p>
+        <p class="state-message">No bookings yet. They'll show up here the moment a student books a room.</p>
       </div>
     `;
   }

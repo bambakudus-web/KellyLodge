@@ -1,4 +1,4 @@
-// forgot-password.js — submits the forgot-password form
+// forgot-password.js: submits the forgot-password form
 
 const form = document.getElementById('forgot-form');
 const errorBox = document.getElementById('form-error');

@@ -1,4 +1,4 @@
-// login.js — handles the login form submission
+// login.js: handles the login form submission
 
 const form = document.getElementById('login-form');
 const errorBox = document.getElementById('form-error');

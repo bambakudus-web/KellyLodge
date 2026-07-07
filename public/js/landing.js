@@ -1,4 +1,4 @@
-// landing.js — the landing page's key-tag entrance animation and a subtle
+// landing.js: the landing page's key-tag entrance animation and a subtle
 // post-landing mouse tilt on desktop.
 
 const keyBoard = document.querySelector('.key-board');

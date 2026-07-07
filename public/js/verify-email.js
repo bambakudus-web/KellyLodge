@@ -1,4 +1,4 @@
-// verify-email.js — calls the verification endpoint using the token in the URL
+// verify-email.js: calls the verification endpoint using the token in the URL
 
 const container = document.getElementById('verify-container');
 

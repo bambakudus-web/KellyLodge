@@ -1,4 +1,4 @@
-// edit-listing.js — pre-fills the post form with an existing listing and PUTs the changes
+// edit-listing.js: pre-fills the post form with an existing listing and PUTs the changes
 
 const container = document.getElementById('edit-container');
 

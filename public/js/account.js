@@ -1,4 +1,4 @@
-// account.js — lets any logged-in user (student, hoster, admin) manage their profile and password
+// account.js: lets any logged-in user (student, hoster, admin) manage their profile and password
 
 const container = document.getElementById('account-container');
 

@@ -1,4 +1,4 @@
-// reset-password.js — reads the token from the URL and submits a new password
+// reset-password.js: reads the token from the URL and submits a new password
 
 const form = document.getElementById('reset-form');
 const errorBox = document.getElementById('form-error');

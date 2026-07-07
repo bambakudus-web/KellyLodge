@@ -1,4 +1,4 @@
-// admin.js — powers the admin dashboard: access gate, stats, users, listings
+// admin.js: powers the admin dashboard: access gate, stats, users, listings
 
 const container = document.getElementById('admin-container');
 let currentTab = 'listings';
