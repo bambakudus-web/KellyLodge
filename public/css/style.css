@@ -891,15 +891,34 @@ select:focus, input:focus, textarea:focus, button:focus {
 /* ---------- Nav user menu ---------- */
 
 .nav-user {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
+  position: relative;
   margin-left: 0.6rem;
   padding-left: 0.8rem;
   border-left: 1px solid rgba(255,255,255,0.15);
 }
 
-.nav-user .who { font-size: 0.86rem; color: rgba(255,255,255,0.85); }
+.nav-user-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.83rem;
+  font-weight: 700;
+  font-family: inherit;
+}
+.nav-user-trigger:hover { background: rgba(255,255,255,0.18); }
+.nav-user-trigger .who { color: rgba(255,255,255,0.9); font-weight: 600; }
+.nav-user-trigger .chevron {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.6);
+  transition: transform 0.15s ease;
+}
+.nav-user-trigger[aria-expanded="true"] .chevron { transform: rotate(180deg); }
 
 .nav-user .badge {
   font-family: var(--font-mono);
@@ -910,22 +929,41 @@ select:focus, input:focus, textarea:focus, button:focus {
   text-transform: uppercase;
   padding: 0.15rem 0.5rem;
   border-radius: 20px;
-  margin-left: 0.3rem;
 }
 
-.nav-user button {
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.2);
-  color: white;
-  padding: 0.45rem 1rem;
-  border-radius: 999px;
-  cursor: pointer;
-  font-size: 0.83rem;
-  font-weight: 700;
-  font-family: inherit;
-}
+.nav-dropdown-divider { height: 1px; background: rgba(255,255,255,0.12); margin: 0.4rem 0; }
 
-.nav-user button:hover { background: rgba(255,255,255,0.18); }
+@media (min-width: 769px) {
+  .nav-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 0.6rem);
+    right: 0;
+    min-width: 190px;
+    background: var(--night);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 0.4rem;
+    box-shadow: 0 14px 28px rgba(0,0,0,0.35);
+    z-index: 20;
+  }
+  .nav-dropdown.open { display: block; }
+  .nav-dropdown a, .nav-dropdown button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.55rem 0.7rem;
+    color: rgba(255,255,255,0.85);
+    background: none;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.86rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .nav-dropdown a:hover, .nav-dropdown button:hover { background: rgba(255,255,255,0.1); color: white; }
+}
 
 /* ---------- Admin dashboard ---------- */
 
@@ -1133,7 +1171,30 @@ table.admin-table tr:hover { background: rgba(192, 138, 33, 0.04); }
     padding-top: 0.7rem;
     margin-top: 0.5rem;
     width: 100%;
+  }
+  .nav-user-trigger {
+    width: 100%;
     justify-content: space-between;
+    background: none;
+    border: none;
+    padding: 0.4rem 0;
+  }
+  .nav-user-trigger .chevron { display: none; }
+
+  /* On mobile the dropdown isn't a floating panel, it's just the rest of
+     the already-open hamburger menu, so it's always expanded inline. */
+  .nav-dropdown { display: block; padding-left: 0.4rem; }
+  .nav-dropdown a, .nav-dropdown button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.6rem 0.5rem;
+    color: rgba(255,255,255,0.85);
+    background: none;
+    border: none;
+    font-size: 0.92rem;
+    font-family: inherit;
+    cursor: pointer;
   }
 
   .hero h1 { font-size: 1.6rem; }

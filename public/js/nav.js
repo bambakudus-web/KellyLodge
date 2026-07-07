@@ -28,36 +28,58 @@ function renderNav(user) {
   const nav = document.getElementById('site-nav');
   if (!nav || !header) return;
 
-  const links = [`<a href="/index.html">Browse</a>`];
+  const topLinks = [`<a href="/index.html">Browse</a>`];
 
   if (!user) {
-    links.push(`<a href="/login.html">Log in</a>`);
-    links.push(`<a href="/signup.html" class="cta">Sign up</a>`);
+    topLinks.push(`<a href="/login.html">Log in</a>`);
+    topLinks.push(`<a href="/signup.html" class="cta">Sign up</a>`);
+
+    nav.innerHTML = `<div class="nav-links">${topLinks.join('')}</div>`;
   } else {
-    if (user.role === 'student') links.push(`<a href="/mybookings.html">My Bookings</a>`);
-    if (user.role === 'student') links.push(`<a href="/favorites.html">Favorites</a>`);
-    if (user.role === 'hoster') links.push(`<a href="/post.html">Post a listing</a>`);
-    if (user.role === 'hoster') links.push(`<a href="/dashboard.html">Dashboard</a>`);
-    if (user.role === 'admin') links.push(`<a href="/admin.html">Admin</a>`);
-    links.push(`<a href="/account.html">Account</a>`);
+    const menuLinks = [];
+    if (user.role === 'student') menuLinks.push(`<a href="/mybookings.html">My Bookings</a>`);
+    if (user.role === 'student') menuLinks.push(`<a href="/favorites.html">Favorites</a>`);
+    if (user.role === 'hoster') menuLinks.push(`<a href="/post.html">Post a listing</a>`);
+    if (user.role === 'hoster') menuLinks.push(`<a href="/dashboard.html">Dashboard</a>`);
+    if (user.role === 'admin') menuLinks.push(`<a href="/admin.html">Admin</a>`);
+    menuLinks.push(`<a href="/account.html">Account</a>`);
+
+    nav.innerHTML = `
+      <div class="nav-links">${topLinks.join('')}</div>
+      <div class="nav-user">
+        <button type="button" class="nav-user-trigger" id="nav-user-trigger" aria-haspopup="true" aria-expanded="false">
+          <span class="who">${navEscapeHTML(user.name)}</span>
+          <span class="badge">${user.role}</span>
+          <span class="chevron">&#9662;</span>
+        </button>
+        <div class="nav-dropdown" id="nav-dropdown">
+          ${menuLinks.join('')}
+          <div class="nav-dropdown-divider"></div>
+          <button type="button" id="logout-btn">Log out</button>
+        </div>
+      </div>
+    `;
   }
-
-  const userBlockHTML = user ? `
-    <span class="nav-user">
-      <span class="who">${navEscapeHTML(user.name)}<span class="badge">${user.role}</span></span>
-      <button id="logout-btn">Log out</button>
-    </span>
-  ` : '';
-
-  nav.innerHTML = `
-    <div class="nav-links">${links.join('')}</div>
-    ${userBlockHTML}
-  `;
 
   if (user) {
     document.getElementById('logout-btn').addEventListener('click', async () => {
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
       window.location.href = '/landing.html';
+    });
+
+    // Desktop dropdown: toggle on click, close on an outside click.
+    const trigger = document.getElementById('nav-user-trigger');
+    const dropdown = document.getElementById('nav-dropdown');
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = dropdown.classList.toggle('open');
+      trigger.setAttribute('aria-expanded', String(isOpen));
+    });
+    document.addEventListener('click', (e) => {
+      if (dropdown.classList.contains('open') && !dropdown.contains(e.target) && e.target !== trigger) {
+        dropdown.classList.remove('open');
+        trigger.setAttribute('aria-expanded', 'false');
+      }
     });
   }
 
@@ -74,8 +96,10 @@ function renderNav(user) {
     header.appendChild(toggle);
   }
 
-  // Close the mobile menu whenever a nav link is tapped
-  nav.querySelectorAll('a, button').forEach((el) => {
+  // Close the mobile menu whenever a real nav link/action is tapped, but not
+  // the dropdown trigger itself (that would close the whole mobile menu
+  // instead of just revealing the dropdown's contents).
+  nav.querySelectorAll('.nav-links a, .nav-dropdown a, .nav-dropdown button').forEach((el) => {
     el.addEventListener('click', () => {
       nav.classList.remove('open');
       header.querySelector('.nav-toggle')?.classList.remove('open');
