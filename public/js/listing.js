@@ -186,7 +186,7 @@ function attachBookHandlers() {
           return;
         }
 
-        messageBox.innerHTML = `Booked! The owner has been notified by email. Find it in <a href="/mybookings.html">My Bookings</a>.`;
+        messageBox.innerHTML = `Room held for 72 hours! Pay now in <a href="/mybookings.html">My Bookings</a> to confirm it, or it will be released automatically if payment isn't completed in time.`;
         messageBox.className = 'room-booking-message success';
 
         const roomItem = btn.closest('.room-item');

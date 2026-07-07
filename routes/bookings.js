@@ -1,11 +1,16 @@
-// routes/bookings.js — instant room booking, "My Bookings", and the hoster's received-bookings feed
+// routes/bookings.js — instant room booking (pending payment), "My Bookings", and the hoster's received-bookings feed
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 const { requireRole } = require('../middleware/auth');
-const { sendBookingNotification } = require('../utils/email');
+const { sendBookingNotification, sendPaymentReminderEmail } = require('../utils/email');
+const { sendBookingSMSToOwner, sendBookingSMSToStudent } = require('../utils/sms');
 
-// POST /api/bookings — book a room instantly (students only)
+const PAYMENT_WINDOW_HOURS = 72;
+
+// POST /api/bookings — reserve a room instantly (students only); the room is
+// held for 72 hours pending payment, after which an unpaid booking is
+// automatically expired (see utils/expireBookings.js, run on a timer in server.js).
 router.post('/', requireRole('student'), async (req, res) => {
   const connection = await pool.getConnection();
   try {
@@ -40,19 +45,22 @@ router.post('/', requireRole('student'), async (req, res) => {
       [room_type_id]
     );
 
+    const paymentDeadline = new Date(Date.now() + PAYMENT_WINDOW_HOURS * 60 * 60 * 1000);
+
     const [result] = await connection.query(
-      'INSERT INTO bookings (room_type_id, listing_id, student_id) VALUES (?, ?, ?)',
-      [room_type_id, roomType.listing_id, studentId]
+      `INSERT INTO bookings (room_type_id, listing_id, student_id, payment_status, payment_deadline)
+       VALUES (?, ?, ?, 'pending', ?)`,
+      [room_type_id, roomType.listing_id, studentId, paymentDeadline]
     );
 
     const [[listing]] = await connection.query(
-      `SELECT listings.title, users.name AS owner_name, users.email AS owner_email
+      `SELECT listings.title, users.name AS owner_name, users.email AS owner_email, users.phone AS owner_phone
        FROM listings JOIN users ON listings.owner_id = users.id
        WHERE listings.id = ?`,
       [roomType.listing_id]
     );
 
-    // Session only stores name/email/role, not phone — pull the full record for the email.
+    // Session only stores name/email/role, not phone — pull the full record for the email/SMS.
     const [[student]] = await connection.query(
       'SELECT name, phone, email FROM users WHERE id = ?',
       [studentId]
@@ -60,7 +68,7 @@ router.post('/', requireRole('student'), async (req, res) => {
 
     await connection.commit();
 
-    // Fire-and-forget — a slow or failed email should never block the booking response.
+    // Fire-and-forget — a slow or failed email/SMS should never block the booking response.
     sendBookingNotification({
       ownerEmail: listing.owner_email,
       ownerName: listing.owner_name,
@@ -70,9 +78,36 @@ router.post('/', requireRole('student'), async (req, res) => {
       listingTitle: listing.title,
       roomType: roomType.room_type,
       price: roomType.price,
+      paymentDeadline,
+    });
+    sendBookingSMSToOwner({
+      ownerPhone: listing.owner_phone,
+      studentName: student.name,
+      studentPhone: student.phone,
+      listingTitle: listing.title,
+      roomType: roomType.room_type,
+    });
+    sendPaymentReminderEmail({
+      toEmail: student.email,
+      toName: student.name,
+      listingTitle: listing.title,
+      roomType: roomType.room_type,
+      price: roomType.price,
+      deadline: paymentDeadline,
+    });
+    sendBookingSMSToStudent({
+      studentPhone: student.phone,
+      listingTitle: listing.title,
+      roomType: roomType.room_type,
+      price: roomType.price,
+      deadline: paymentDeadline,
     });
 
-    res.status(201).json({ id: result.insertId, message: 'Room booked! Check My Bookings.' });
+    res.status(201).json({
+      id: result.insertId,
+      payment_deadline: paymentDeadline,
+      message: 'Room held for 72 hours. Complete payment in My Bookings to confirm it.',
+    });
   } catch (err) {
     await connection.rollback();
     console.error('Error booking room:', err);
@@ -86,7 +121,7 @@ router.post('/', requireRole('student'), async (req, res) => {
 router.get('/mine', requireRole('student'), async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT bookings.id, bookings.created_at,
+      `SELECT bookings.id, bookings.created_at, bookings.payment_status, bookings.payment_deadline, bookings.paid_at, bookings.paystack_reference,
               room_types.room_type, room_types.price,
               listings.id AS listing_id, listings.title, listings.area, listings.image_url,
               users.name AS owner_name, users.phone AS owner_phone
@@ -111,7 +146,7 @@ router.get('/received', requireRole('hoster', 'admin'), async (req, res) => {
     const isAdmin = req.session.user.role === 'admin';
 
     let query = `
-      SELECT bookings.id, bookings.created_at,
+      SELECT bookings.id, bookings.created_at, bookings.payment_status, bookings.payment_deadline, bookings.paid_at,
              room_types.room_type, room_types.price,
              listings.id AS listing_id, listings.title,
              users.name AS student_name, users.phone AS student_phone, users.email AS student_email
@@ -137,7 +172,10 @@ router.get('/received', requireRole('hoster', 'admin'), async (req, res) => {
   }
 });
 
-// DELETE /api/bookings/:id — cancel a booking, frees the room type slot back up
+// DELETE /api/bookings/:id — cancel a booking, frees the room type slot back up.
+// A booking that's already been paid for can't be self-cancelled here, since
+// there's no automatic refund flow — the student needs to go through the
+// owner (or admin) directly for that.
 router.delete('/:id', requireRole('student'), async (req, res) => {
   const connection = await pool.getConnection();
   try {
@@ -146,7 +184,7 @@ router.delete('/:id', requireRole('student'), async (req, res) => {
     await connection.beginTransaction();
 
     const [bookings] = await connection.query(
-      'SELECT room_type_id, student_id FROM bookings WHERE id = ?',
+      'SELECT room_type_id, student_id, payment_status FROM bookings WHERE id = ?',
       [id]
     );
 
@@ -158,6 +196,13 @@ router.delete('/:id', requireRole('student'), async (req, res) => {
     if (bookings[0].student_id !== req.session.user.id) {
       await connection.rollback();
       return res.status(403).json({ error: 'You can only cancel your own bookings.' });
+    }
+
+    if (bookings[0].payment_status === 'paid') {
+      await connection.rollback();
+      return res.status(400).json({
+        error: 'This booking has already been paid for. Contact the owner directly to arrange a cancellation or refund.',
+      });
     }
 
     await connection.query(

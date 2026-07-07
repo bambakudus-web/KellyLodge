@@ -17,6 +17,12 @@ function formatDate(isoString) {
   return new Date(isoString).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+function paymentBadgeHTML(b) {
+  if (b.payment_status === 'paid') return '<span class="payment-badge paid">Paid</span>';
+  if (b.payment_status === 'expired') return '<span class="payment-badge expired">Expired, unpaid</span>';
+  return '<span class="payment-badge pending">Awaiting payment</span>';
+}
+
 function listingsSectionHTML(listings) {
   if (listings.length === 0) {
     return `
@@ -63,6 +69,7 @@ function bookingsSectionHTML(bookings) {
         <div class="bri-meta">
           <span class="tag">${b.room_type}</span>
           <span>${escapeHTML(b.title)}</span>
+          ${paymentBadgeHTML(b)}
         </div>
         <div class="bri-contact">
           <a href="tel:${b.student_phone}">${b.student_phone}</a> &middot; <a href="mailto:${b.student_email}">${b.student_email}</a>

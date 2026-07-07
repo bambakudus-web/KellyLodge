@@ -1680,3 +1680,133 @@ select, input, textarea {
   cursor: pointer;
 }
 .photo-cover-btn:hover { background: var(--brass-dark); }
+
+/* =========================================================================
+   Auth pages (login/signup): split-screen layout with a branded side panel
+   ========================================================================= */
+
+.auth-shell {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: calc(100vh - 76px);
+}
+
+.auth-side {
+  position: relative;
+  background: var(--night);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+}
+.auth-side::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url('/images/hero-room-desktop.avif');
+  background-size: cover;
+  background-position: center 55%;
+  opacity: 0.55;
+}
+.auth-side::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(19, 26, 46, 0.55);
+}
+.auth-side-content {
+  position: relative;
+  z-index: 1;
+  color: white;
+  max-width: 380px;
+}
+.auth-side-content .eyebrow {
+  color: var(--brass-light);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+.auth-side-content h2 {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  line-height: 1.2;
+  margin: 0.7rem 0 1rem;
+}
+.auth-side-content p {
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.6;
+  font-size: 0.98rem;
+}
+.auth-side-stats {
+  display: flex;
+  gap: 1.8rem;
+  margin-top: 2rem;
+}
+.auth-side-stats div { text-align: left; }
+.auth-side-stats .stat-num {
+  font-family: var(--font-mono);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--brass-light);
+  display: block;
+}
+.auth-side-stats .stat-label {
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.auth-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1.5rem;
+}
+.auth-main .auth-wrap { margin: 0; }
+
+/* A touch more polish on the inputs themselves within auth cards */
+.auth-card input[type="text"],
+.auth-card input[type="email"],
+.auth-card input[type="password"],
+.auth-card input[type="tel"] {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.auth-card input[type="text"]:focus,
+.auth-card input[type="email"]:focus,
+.auth-card input[type="password"]:focus,
+.auth-card input[type="tel"]:focus {
+  border-color: var(--brass);
+  box-shadow: 0 0 0 3px rgba(201, 153, 46, 0.18);
+  outline: none;
+}
+
+@media (max-width: 900px) {
+  .auth-shell { grid-template-columns: 1fr; min-height: auto; }
+  .auth-side { display: none; }
+  .auth-main { padding: 2rem 1.2rem 3rem; }
+}
+
+/* ---------- Payment status badges (My Bookings, dashboard) ---------- */
+.payment-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  margin: 0.3rem 0;
+}
+.payment-badge.pending { background: rgba(201, 153, 46, 0.15); color: var(--brass-dark); }
+.payment-badge.paid { background: rgba(60, 130, 90, 0.15); color: #2f6b46; }
+.payment-badge.expired { background: rgba(180, 60, 60, 0.12); color: var(--danger); }
+
+.booking-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+@media (max-width: 700px) {
+  .booking-actions { flex-direction: row; }
+}

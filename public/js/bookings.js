@@ -14,6 +14,25 @@ function gate(message) {
   `;
 }
 
+function timeRemainingText(deadline) {
+  const diffMs = new Date(deadline).getTime() - Date.now();
+  if (diffMs <= 0) return 'Payment window has closed';
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+  if (hours >= 1) return `${hours}h ${minutes}m left to pay`;
+  return `${minutes}m left to pay`;
+}
+
+function paymentBadgeHTML(booking) {
+  if (booking.payment_status === 'paid') {
+    return '<span class="payment-badge paid">Paid</span>';
+  }
+  if (booking.payment_status === 'expired') {
+    return '<span class="payment-badge expired">Expired, unpaid</span>';
+  }
+  return `<span class="payment-badge pending">Pending payment, ${timeRemainingText(booking.payment_deadline)}</span>`;
+}
+
 function renderBookings(bookings) {
   if (bookings.length === 0) {
     bookingsContainer.innerHTML = `
@@ -33,9 +52,13 @@ function renderBookings(bookings) {
           <span class="tag">${b.room_type}</span>
         </div>
         <div class="price">GH₵ ${Number(b.price).toLocaleString()} <span class="unit">/ year</span></div>
+        ${paymentBadgeHTML(b)}
         <div class="booking-owner">Owner: ${escapeHTML(b.owner_name)}, <a href="tel:${b.owner_phone}">${b.owner_phone}</a></div>
       </div>
-      <button class="btn btn-danger btn-small cancel-btn" data-booking-id="${b.id}">Cancel</button>
+      <div class="booking-actions">
+        ${b.payment_status === 'pending' ? `<button class="btn btn-gold btn-small pay-btn" data-booking-id="${b.id}">Pay now</button>` : ''}
+        ${b.payment_status === 'pending' ? `<button class="btn btn-danger btn-small cancel-btn" data-booking-id="${b.id}">Cancel</button>` : ''}
+      </div>
     </div>
   `).join('');
 
@@ -45,10 +68,45 @@ function renderBookings(bookings) {
       const id = btn.getAttribute('data-booking-id');
       try {
         const res = await secureFetch(`/api/bookings/${id}`, { method: 'DELETE' });
-        if (!res.ok) throw new Error('Cancel failed');
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || 'Could not cancel this booking.');
+          return;
+        }
         document.querySelector(`.booking-item[data-booking-id="${id}"]`).remove();
       } catch (err) {
         alert('Could not cancel this booking.');
+      }
+    });
+  });
+
+  document.querySelectorAll('.pay-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const bookingId = btn.getAttribute('data-booking-id');
+      btn.disabled = true;
+      btn.textContent = 'Redirecting…';
+
+      try {
+        const res = await secureFetch('/api/payments/initialize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ booking_id: bookingId }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          alert(data.error || 'Could not start the payment.');
+          btn.disabled = false;
+          btn.textContent = 'Pay now';
+          return;
+        }
+
+        window.location.href = data.authorization_url;
+      } catch (err) {
+        console.error(err);
+        alert('Could not reach the payment server. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Pay now';
       }
     });
   });

@@ -8,9 +8,11 @@ function ensureCsrfToken(req) {
   return req.session.csrfToken;
 }
 
-// Login/signup happen before a session-bound token can exist, and a forced
-// logout via CSRF is low-severity, so those three paths are exempt.
-const EXEMPT_PATHS = ['/api/auth/login', '/api/auth/signup', '/api/auth/logout'];
+// Login/signup happen before a session-bound token can exist, a forced
+// logout via CSRF is low-severity, and the Paystack webhook is called
+// server-to-server (verified instead by its own HMAC signature, see
+// routes/payments.js), so those paths are exempt.
+const EXEMPT_PATHS = ['/api/auth/login', '/api/auth/signup', '/api/auth/logout', '/api/payments/webhook'];
 
 function csrfProtection(req, res, next) {
   const safeMethods = ['GET', 'HEAD', 'OPTIONS'];

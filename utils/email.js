@@ -45,7 +45,12 @@ async function sendBookingNotification({
   listingTitle,
   roomType,
   price,
+  paymentDeadline,
 }) {
+  const deadlineText = paymentDeadline
+    ? paymentDeadline.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+    : null;
+
   const html = `
     <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1a1a1a;">
       <h2 style="margin-bottom: 0.3em;">New room booking on KellyLodge</h2>
@@ -57,10 +62,62 @@ async function sendBookingNotification({
         <li><strong>Student phone:</strong> ${studentPhone}</li>
         <li><strong>Student email:</strong> ${studentEmail}</li>
       </ul>
+      ${deadlineText
+        ? `<p><strong>This booking is pending payment.</strong> The room is held for the student until ${deadlineText} (72 hours). You'll get another email the moment payment is confirmed. If payment isn't made in time, the room automatically becomes available again.</p>`
+        : ''}
       <p>Log in to your KellyLodge dashboard to see every booking across your listings.</p>
     </div>
   `;
   await sendViaBrevo({ toEmail: ownerEmail, toName: ownerName, subject: `New booking at ${listingTitle}`, html });
+}
+
+async function sendPaymentReminderEmail({ toEmail, toName, listingTitle, roomType, price, deadline }) {
+  const deadlineText = deadline.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1a1a1a;">
+      <h2 style="margin-bottom: 0.3em;">Complete your payment to confirm your room</h2>
+      <p>Hi ${toName},</p>
+      <p>Your booking for <strong>${roomType}</strong> at <strong>${listingTitle}</strong> (GH₵ ${Number(price).toLocaleString()} / year) is on hold.</p>
+      <p><strong>Pay by ${deadlineText}</strong> (72 hours from booking), or this reservation will be automatically cancelled and the room released back to other students.</p>
+      <p>Go to My Bookings on KellyLodge to complete your payment securely with Paystack.</p>
+    </div>
+  `;
+  await sendViaBrevo({ toEmail, toName, subject: `Action needed: pay for your room at ${listingTitle}`, html });
+}
+
+async function sendPaymentConfirmationEmailToStudent({ toEmail, toName, listingTitle }) {
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1a1a1a;">
+      <h2 style="margin-bottom: 0.3em;">Payment received, your room is confirmed</h2>
+      <p>Hi ${toName},</p>
+      <p>We've received your payment for <strong>${listingTitle}</strong>. Your booking is now fully confirmed.</p>
+      <p>Thank you for using KellyLodge.</p>
+    </div>
+  `;
+  await sendViaBrevo({ toEmail, toName, subject: `Payment confirmed: ${listingTitle}`, html });
+}
+
+async function sendPaymentConfirmationEmailToOwner({ toEmail, toName, studentName, listingTitle, roomType, price }) {
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1a1a1a;">
+      <h2 style="margin-bottom: 0.3em;">A booking has been paid for</h2>
+      <p>Hi ${toName},</p>
+      <p><strong>${studentName}</strong> has completed payment for <strong>${roomType}</strong> at <strong>${listingTitle}</strong> (GH₵ ${Number(price).toLocaleString()} / year). This booking is now confirmed, no further action needed on your end.</p>
+    </div>
+  `;
+  await sendViaBrevo({ toEmail, toName, subject: `Booking confirmed and paid: ${listingTitle}`, html });
+}
+
+async function sendBookingExpiredEmail({ toEmail, toName, listingTitle }) {
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1a1a1a;">
+      <h2 style="margin-bottom: 0.3em;">Your booking has been cancelled</h2>
+      <p>Hi ${toName},</p>
+      <p>Your booking at <strong>${listingTitle}</strong> was automatically cancelled because payment wasn't completed within the 72-hour window. The room has been released back to other students.</p>
+      <p>You're welcome to book again on KellyLodge if the room is still available.</p>
+    </div>
+  `;
+  await sendViaBrevo({ toEmail, toName, subject: `Booking cancelled: ${listingTitle}`, html });
 }
 
 async function sendVerificationEmail({ toEmail, toName, verifyUrl }) {
@@ -90,4 +147,12 @@ async function sendPasswordResetEmail({ toEmail, toName, resetUrl }) {
   await sendViaBrevo({ toEmail, toName, subject: 'Reset your KellyLodge password', html });
 }
 
-module.exports = { sendBookingNotification, sendVerificationEmail, sendPasswordResetEmail };
+module.exports = {
+  sendBookingNotification,
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+  sendPaymentReminderEmail,
+  sendPaymentConfirmationEmailToStudent,
+  sendPaymentConfirmationEmailToOwner,
+  sendBookingExpiredEmail,
+};
