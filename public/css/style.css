@@ -1682,90 +1682,75 @@ select, input, textarea {
 .photo-cover-btn:hover { background: var(--brass-dark); }
 
 /* =========================================================================
-   Auth pages (login/signup): split-screen layout with a branded side panel
+   Auth pages (login/signup): the form itself, not a layout gimmick
    ========================================================================= */
 
-.auth-shell {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  min-height: calc(100vh - 76px);
-}
-
-.auth-side {
+.auth-card {
   position: relative;
-  background: var(--night);
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem;
 }
-.auth-side::before {
-  content: '';
+
+/* A thin brass accent along the top of the card, a small signature touch
+   instead of a generic flat white box */
+.auth-card-topbar {
   position: absolute;
-  inset: 0;
-  background-image: url('/images/hero-room-desktop.avif');
-  background-size: cover;
-  background-position: center 55%;
-  opacity: 0.55;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: linear-gradient(90deg, var(--brass-dark), var(--brass), var(--brass-light));
 }
-.auth-side::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: rgba(19, 26, 46, 0.55);
-}
-.auth-side-content {
-  position: relative;
-  z-index: 1;
-  color: white;
-  max-width: 380px;
-}
-.auth-side-content .eyebrow {
-  color: var(--brass-light);
+
+.auth-card label {
   font-family: var(--font-mono);
-  font-size: 0.78rem;
-  letter-spacing: 0.08em;
+  font-size: 0.72rem;
   font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
 }
-.auth-side-content h2 {
-  font-family: var(--font-display);
-  font-size: 2rem;
-  line-height: 1.2;
-  margin: 0.7rem 0 1rem;
+
+/* Icon fields: a small monochrome icon inline in the input, matching the
+   brand's ink-soft tone, so the form reads a little more considered than
+   plain bare inputs */
+.icon-field { position: relative; }
+.icon-field input {
+  padding-left: 2.6rem;
+  background-repeat: no-repeat;
+  background-position: 0.9rem center;
+  background-size: 18px 18px;
 }
-.auth-side-content p {
-  color: rgba(255, 255, 255, 0.8);
-  line-height: 1.6;
-  font-size: 0.98rem;
+.icon-email input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6858' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 4h16v16H4z'/%3E%3Cpath d='M4 6l8 7 8-7'/%3E%3C/svg%3E");
 }
-.auth-side-stats {
-  display: flex;
-  gap: 1.8rem;
-  margin-top: 2rem;
+.icon-password input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6858' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='11' width='14' height='9' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 018 0v4'/%3E%3C/svg%3E");
+  padding-right: 3.6rem;
 }
-.auth-side-stats div { text-align: left; }
-.auth-side-stats .stat-num {
+.icon-name input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6858' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 21c0-4 4-6 8-6s8 2 8 6'/%3E%3C/svg%3E");
+}
+.icon-phone input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6858' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 015 6a2 2 0 012-2z'/%3E%3C/svg%3E");
+}
+
+.password-toggle {
+  position: absolute;
+  right: 0.9rem;
+  top: 2.35rem;
+  background: none;
+  border: none;
+  color: var(--brass-dark);
   font-family: var(--font-mono);
-  font-size: 1.3rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  color: var(--brass-light);
-  display: block;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  padding: 0.2rem 0.3rem;
+  text-transform: uppercase;
 }
-.auth-side-stats .stat-label {
-  font-size: 0.76rem;
-  color: rgba(255, 255, 255, 0.65);
-}
+.password-toggle:hover { color: var(--brass); }
 
-.auth-main {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2.5rem 1.5rem;
-}
-.auth-main .auth-wrap { margin: 0; }
-
-/* A touch more polish on the inputs themselves within auth cards */
 .auth-card input[type="text"],
 .auth-card input[type="email"],
 .auth-card input[type="password"],
@@ -1779,12 +1764,6 @@ select, input, textarea {
   border-color: var(--brass);
   box-shadow: 0 0 0 3px rgba(201, 153, 46, 0.18);
   outline: none;
-}
-
-@media (max-width: 900px) {
-  .auth-shell { grid-template-columns: 1fr; min-height: auto; }
-  .auth-side { display: none; }
-  .auth-main { padding: 2rem 1.2rem 3rem; }
 }
 
 /* ---------- Payment status badges (My Bookings, dashboard) ---------- */

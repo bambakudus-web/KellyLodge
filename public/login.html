@@ -16,44 +16,30 @@
     <nav id="site-nav"></nav>
   </header>
 
-  <div class="auth-shell">
-    <div class="auth-side">
-      <div class="auth-side-content">
-        <span class="eyebrow">OFF-CAMPUS HOUSING NEAR KSTU</span>
-        <h2>Real hostels. Real owners. No middleman.</h2>
-        <p>Every listing on KellyLodge is posted directly by the person who holds the keys, filterable by area and price, with photos and reviews from students who've actually stayed there.</p>
-        <div class="auth-side-stats">
-          <div><span class="stat-num">3+</span><span class="stat-label">Areas near campus</span></div>
-          <div><span class="stat-num">100%</span><span class="stat-label">Owner-posted listings</span></div>
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-card-topbar"></div>
+      <h2>Welcome back</h2>
+      <p class="form-note center">Log in to browse, post, or manage listings.</p>
+
+      <div class="form-error" id="form-error"></div>
+
+      <form id="login-form">
+        <div class="form-group icon-field icon-email">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required />
         </div>
-      </div>
-    </div>
-
-    <div class="auth-main">
-      <div class="auth-wrap">
-        <div class="auth-card">
-          <h2>Welcome back</h2>
-          <p class="form-note center">Log in to browse, post, or manage listings.</p>
-
-          <div class="form-error" id="form-error"></div>
-
-          <form id="login-form">
-            <div class="form-group">
-              <label for="email">Email</label>
-              <input type="email" id="email" name="email" required />
-            </div>
-            <div class="form-group">
-              <label for="password">Password</label>
-              <input type="password" id="password" name="password" required />
-              <span class="form-note" style="text-align: right; display: block;"><a href="/forgot-password.html">Forgot password?</a></span>
-            </div>
-            <button type="submit" class="btn btn-gold btn-block">Log in</button>
-          </form>
-
-          <div class="auth-switch">
-            Don't have an account? <a href="/signup.html">Sign up</a>
-          </div>
+        <div class="form-group icon-field icon-password">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required />
+          <button type="button" class="password-toggle" data-target="password" aria-label="Show password">Show</button>
+          <span class="form-note" style="text-align: right; display: block;"><a href="/forgot-password.html">Forgot password?</a></span>
         </div>
+        <button type="submit" class="btn btn-gold btn-block">Log in</button>
+      </form>
+
+      <div class="auth-switch">
+        Don't have an account? <a href="/signup.html">Sign up</a>
       </div>
     </div>
   </div>
@@ -63,6 +49,7 @@
   </footer>
 
   <script src="/js/nav.js"></script>
+  <script src="/js/auth-form.js"></script>
   <script src="/js/login.js"></script>
 </body>
 </html>
