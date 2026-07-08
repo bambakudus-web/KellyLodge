@@ -86,18 +86,42 @@ router.patch('/users/:id/role', async (req, res) => {
   }
 });
 
-// DELETE /api/admin/users/:id — remove a user (cascades to their listings)
+// DELETE /api/admin/users/:id — remove a user (cascades to their listings
+// and bookings). Any room they were actively holding (pending or paid
+// bookings) has its availability restored first, since the cascade delete
+// removes the booking row without knowing to do that itself.
 router.delete('/users/:id', async (req, res) => {
+  const { id } = req.params;
+  if (Number(id) === req.session.user.id) {
+    return res.status(400).json({ error: 'You cannot delete your own admin account.' });
+  }
+
+  const connection = await pool.getConnection();
   try {
-    const { id } = req.params;
-    if (Number(id) === req.session.user.id) {
-      return res.status(400).json({ error: 'You cannot delete your own admin account.' });
+    await connection.beginTransaction();
+
+    const [activeBookings] = await connection.query(
+      `SELECT room_type_id FROM bookings WHERE student_id = ? AND payment_status IN ('pending', 'paid')`,
+      [id]
+    );
+
+    for (const booking of activeBookings) {
+      await connection.query(
+        'UPDATE room_types SET available_quantity = LEAST(available_quantity + 1, total_quantity) WHERE id = ?',
+        [booking.room_type_id]
+      );
     }
-    await pool.query('DELETE FROM users WHERE id = ?', [id]);
+
+    await connection.query('DELETE FROM users WHERE id = ?', [id]);
+
+    await connection.commit();
     res.json({ message: 'User removed.' });
   } catch (err) {
+    await connection.rollback();
     console.error('Error deleting user:', err);
     res.status(500).json({ error: 'Could not delete user.' });
+  } finally {
+    connection.release();
   }
 });
 

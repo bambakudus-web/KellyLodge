@@ -5,7 +5,7 @@ const router = express.Router();
 const crypto = require('crypto');
 const pool = require('../db');
 const { requireRole } = require('../middleware/auth');
-const { initializeTransaction, isValidWebhookSignature } = require('../utils/paystack');
+const { initializeTransaction, verifyTransaction, isValidWebhookSignature } = require('../utils/paystack');
 const {
   sendPaymentConfirmationEmailToStudent,
   sendPaymentConfirmationEmailToOwner,
@@ -76,19 +76,40 @@ router.post('/webhook', async (req, res) => {
   const signature = req.headers['x-paystack-signature'];
 
   if (!isValidWebhookSignature(req.rawBody, signature)) {
-    console.warn('Rejected a Paystack webhook with an invalid signature.');
+    console.warn('Rejected a Paystack webhook: invalid signature.');
     return res.status(401).json({ error: 'Invalid signature.' });
   }
 
-  // Acknowledge immediately — Paystack retries if it doesn't get a fast 200,
+  // Acknowledge immediately, Paystack retries if it doesn't get a fast 200,
   // and the actual work below shouldn't hold up that acknowledgment.
   res.status(200).json({ received: true });
 
   try {
     const event = req.body;
+    console.log(`Paystack webhook received: event="${event?.event}" reference="${event?.data?.reference}"`);
+
     if (event.event !== 'charge.success') return;
 
     const reference = event.data.reference;
+
+    // A valid signature only proves the request body wasn't tampered with in
+    // transit, it does NOT prove a real charge happened (Paystack's own
+    // connectivity-test pings can be signed and shaped like a real event).
+    // Independently asking Paystack's verify API "did this reference really
+    // succeed" closes that gap, only Paystack's own transaction records are
+    // trusted for the actual yes/no.
+    let verified;
+    try {
+      verified = await verifyTransaction(reference);
+    } catch (err) {
+      console.warn(`Could not independently verify reference "${reference}", refusing to mark it paid:`, err.message);
+      return;
+    }
+
+    if (!verified || verified.status !== 'success') {
+      console.warn(`Reference "${reference}" is not a verified successful transaction (status: ${verified?.status}), ignoring.`);
+      return;
+    }
 
     const [[booking]] = await pool.query(
       `SELECT bookings.id, bookings.payment_status,
@@ -105,18 +126,28 @@ router.post('/webhook', async (req, res) => {
     );
 
     if (!booking) {
-      console.warn(`Webhook for unknown Paystack reference: ${reference}`);
+      console.warn(`Verified webhook for unknown Paystack reference: ${reference}`);
+      return;
+    }
+
+    const expectedAmountKobo = Math.round(Number(booking.price) * 100);
+    if (verified.amount !== expectedAmountKobo) {
+      console.warn(
+        `Reference "${reference}" paid amount (${verified.amount}) does not match booking #${booking.id}'s expected amount (${expectedAmountKobo}), refusing to mark it paid.`
+      );
       return;
     }
 
     // Idempotency: Paystack can send the same webhook more than once, and
-    // the expiry job could theoretically race with a late webhook — only
+    // the expiry job could theoretically race with a late webhook, only
     // act the first time this booking is marked paid.
     const [updateResult] = await pool.query(
       "UPDATE bookings SET payment_status = 'paid', paid_at = NOW() WHERE id = ? AND payment_status = 'pending'",
       [booking.id]
     );
     if (updateResult.affectedRows === 0) return;
+
+    console.log(`Booking #${booking.id} confirmed paid (reference: ${reference}, verified amount: ${verified.amount}).`);
 
     sendPaymentConfirmationEmailToStudent({
       toEmail: booking.student_email,
