@@ -361,10 +361,14 @@ function renderListing(listing, currentUser, isFavorited) {
       if (!confirm('Remove this listing? This cannot be undone.')) return;
       try {
         const res = await secureFetch(`/api/listings/${listing.id}`, { method: 'DELETE' });
-        if (!res.ok) throw new Error('Delete failed');
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || 'Could not remove listing.');
+          return;
+        }
         window.location.href = '/index.html';
       } catch (err) {
-        alert('Could not remove listing.');
+        alert('Could not reach the server. Please try again.');
       }
     });
   }

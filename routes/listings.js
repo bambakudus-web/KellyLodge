@@ -291,6 +291,19 @@ router.delete('/:id', requireRole('hoster', 'admin'), async (req, res) => {
       return res.status(403).json({ error: 'You can only remove your own listings.' });
     }
 
+    const [[{ activeCount }]] = await pool.query(
+      `SELECT COUNT(*) AS activeCount
+       FROM bookings
+       WHERE listing_id = ? AND payment_status IN ('pending', 'paid')`,
+      [id]
+    );
+
+    if (activeCount > 0) {
+      return res.status(400).json({
+        error: `This listing has ${activeCount} active booking${activeCount === 1 ? '' : 's'} (pending or paid). It can't be deleted while students are holding rooms here, wait for those bookings to resolve, or reach out to those students directly first.`,
+      });
+    }
+
     const [photos] = await pool.query('SELECT image_url FROM listing_photos WHERE listing_id = ?', [id]);
 
     await pool.query('DELETE FROM listings WHERE id = ?', [id]);
