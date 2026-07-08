@@ -1,92 +1,94 @@
-# KellyLodge: Login/Signup redesign + Arkesel SMS + Paystack payments
+# KellyLodge: branded emails, strict signup validation, admin powerhouse, friendlier session gates
 
-## What's in here
+## 1. Branded email templates
+Every email KellyLodge sends (verification, password reset, booking, payment
+reminder/confirmation, expiry notice) now uses a shared branded template:
+navy header with the KellyLodge wordmark, a brass accent bar, a details box
+for booking/payment info, and a proper button instead of a raw text link.
+Table-based HTML so it renders correctly across Gmail, Outlook, etc.
 
-**Login/Signup:** split-screen layout with a branded photo panel (reusing the
-hero image), polished input focus states. Collapses to single-column on mobile.
+New: utils/email.js (full rewrite, same function names/signatures, so
+nothing else needed to change to pick this up).
 
-**SMS (Arkesel):** every booking event now sends SMS in addition to email, to
-both the student and the hoster: new booking (payment reminder to student,
-notification to owner), successful payment (confirmation to both), and
-expired/unpaid booking (notice to student).
+## 2. Strict signup/login validation
+Previously signup only checked "is something typed" and password length.
+Now, both server-side (the real gate) and with matching client-side hints:
+- Name: letters only (plus spaces/apostrophes/hyphens), at least 2 characters.
+  Rejects "123", "asdf!!", single letters.
+- Email: proper format check (something@something.tld).
+- Phone: must be a real Ghanaian number, either 0XXXXXXXXX or +233XXXXXXXXX.
+- Password: at least 6 characters AND must contain both a letter and a number
+  (rejects "111111" or "aaaaaa").
 
-**Payments (Paystack):** booking a room now holds it for 72 hours pending
-payment (full year's rent). A background sweep every 5 minutes automatically
-cancels any booking that's still unpaid after its deadline and restores the
-room's availability. Payment confirmation happens via Paystack's webhook
-(server-to-server, signature-verified), not just the browser redirect.
+Applied to: signup, profile updates (Account page), password changes, and
+password resets.
 
-## New files
-- database/add_payments.js (migration)
-- utils/sms.js, utils/paystack.js, utils/expireBookings.js
-- routes/payments.js
-- public/payment-callback.html, public/js/payment-callback.js
+New: utils/validation.js. Modified: routes/auth.js, public/js/signup.js,
+public/js/account.js, public/signup.html.
 
-## Modified files
-- utils/email.js (added payment reminder/confirmation/expiry emails)
-- routes/bookings.js (payment_status, payment_deadline, SMS on booking)
-- server.js (raw-body capture for webhook signature, mounts payments router, starts the expiry sweep)
-- middleware/csrf.js (exempts the webhook path)
-- public/js/bookings.js, dashboard.js, listing.js (payment status UI, Pay Now button)
-- public/css/style.css (auth split-screen, payment badges)
-- public/login.html, public/signup.html (new split-screen markup)
-- .env.example (documents the new required variables)
+## 3. Admin powerhouse
+- New "Bookings & Revenue" tab: total revenue collected (from paid bookings),
+  pending-payment count, and a full table of every booking platform-wide
+  (listing, student, owner, payment status).
+- Users tab now has a live search box (by name or email).
+- Each user row (except your own) now has a role dropdown, promote/demote
+  between student, hoster, and admin directly, with a confirmation prompt.
+- The "Delete user" button already existed in the code, it's confirmed
+  working, might just not have been noticed before.
 
-## Required setup (in addition to applying this patch)
+New endpoints: GET /api/admin/bookings, PATCH /api/admin/users/:id/role,
+GET /api/admin/users now accepts ?search=. Modified: routes/admin.js,
+public/js/admin.js, public/css/style.css.
 
-1. **Set environment variables** on Railway (never commit real keys to git):
-   - `ARKESEL_API_KEY`, `ARKESEL_SENDER_ID`
-   - `PAYSTACK_SECRET_KEY`, `PAYSTACK_PUBLIC_KEY`
-   - Confirm `APP_URL` is set to your real production URL (used for both
-     email links and Paystack's callback redirect).
+## 4. Friendlier session-expiry messaging
+Every "gate" screen (shown when you're not logged in, or logged in as the
+wrong role) used to say "Access restricted" regardless of why. Now:
+- If your session just expired from inactivity: "Your session has expired"
+  with an explanation, not an accusation.
+- If you've simply never logged in: "Please log in."
+- If you're logged in but the page isn't for your role (e.g. a student
+  hitting the hoster dashboard): a specific heading like "Not for this
+  account", "Listing not found", "Not your listing", "Admins only", etc.,
+  instead of one generic word for every situation.
 
-2. **Register the webhook URL in your Paystack dashboard.** This is a manual
-   step Paystack requires, code alone can't do it:
-   - Go to https://dashboard.paystack.com/#/settings/developer
-   - Under Webhook URL, enter: `https://kellylodge-production.up.railway.app/api/payments/webhook`
-   - (adjust the domain if it's different from what's shown in your browser)
-   - Save. Without this, Paystack will never call your server when a payment
-     completes, the student would pay but the booking would never
-     auto-confirm.
+This works by nav.js remembering (via localStorage) that you were
+successfully logged in at some point, so it can tell "never logged in" apart
+from "was logged in, now isn't" without the backend needing to change at all.
 
-3. **Run the migration** (see commands below), locally and then on Railway.
+Modified: public/js/nav.js, account.js, bookings.js, dashboard.js,
+edit-listing.js, admin.js, favorites.js, post.js.
 
 ## Apply
 
 ```bash
 cd ~/kellylodge
-unzip -o /mnt/c/Users/USER/Downloads/kellylodge_v13_patch.zip -d .
-node database/add_payments.js
+unzip -o /mnt/c/Users/USER/Downloads/kellylodge_v16_patch.zip -d .
 git add -A
 git status
 ```
 
-Confirm all 18 files above show as new/modified, then:
+Confirm all 15 files above show as modified/new, then:
 
 ```bash
-git commit -m "Add split-screen login/signup, Arkesel SMS notifications, and Paystack payment flow with 72-hour hold"
+git commit -m "Branded email templates, strict signup validation, admin bookings/revenue tab and role management, friendlier session-expiry messaging"
 git push origin main
-railway run node database/add_payments.js
 ```
 
-## Test checklist (use Paystack's test mode/test cards if your keys are in test mode)
+No database migration needed, this patch is pure code.
 
-1. Book a room as a student. Confirm you (and the hoster) receive both an
-   email and an SMS mentioning the 72-hour deadline.
-2. Go to My Bookings, confirm the booking shows "Pending payment" with a
-   live countdown, and a "Pay now" button.
-3. Click Pay now, complete checkout on Paystack's page.
-4. Confirm you land back on `/payment-callback.html` and it eventually shows
-   "Payment confirmed."
-5. Confirm both the student and the hoster receive a payment-confirmation
-   email and SMS.
-6. Check My Bookings again, status should now show "Paid."
-7. Try cancelling a **paid** booking, confirm it's blocked with a message
-   directing you to contact the owner.
-8. For the 72-hour expiry itself: since waiting 3 real days isn't practical
-   to test, you can temporarily shorten `PAYMENT_WINDOW_HOURS` in
-   `routes/bookings.js` to something small (like 0.02 for ~1 minute) on a
-   test booking, wait for the 5-minute sweep to run, and confirm the booking
-   flips to "Expired, unpaid," the room's availability is restored, and the
-   student gets the expiry email/SMS. Remember to change it back to 72
-   afterward.
+## Test checklist
+
+1. Sign up with a fake name like "123" or "!!!", confirm it's rejected with
+   a clear message. Try a weak password like "aaaaaa", confirm it's rejected.
+   Try a phone number that isn't a real Ghanaian number.
+2. Trigger any email (sign up, book a room, reset password) and check your
+   inbox, it should look like a real branded email now, not raw text.
+3. Log in as admin, open the new "Bookings & Revenue" tab, confirm it shows
+   real data. Search for a user by name in the Users tab. Try changing a
+   user's role via the dropdown.
+4. To test the session-expiry message without waiting a week: log in, then
+   in another tab call `POST /api/auth/logout` directly (or just clear the
+   session cookie via dev tools), then try to load My Bookings or Account,
+   you should see "Your session has expired" instead of "Access restricted."
+   Then open a fresh incognito window and go straight to My Bookings without
+   ever logging in, you should see the plainer "Please log in" instead.

@@ -2,12 +2,24 @@
 
 const dashboardContainer = document.getElementById('dashboard-container');
 
-function gate(message) {
+function gate(message, customHeading) {
+  let heading = customHeading;
+  let shownMessage = message;
+
+  if (!customHeading) {
+    const expired = window.wasRecentlyLoggedIn && window.wasRecentlyLoggedIn();
+    heading = expired ? 'Your session has expired' : 'Please log in';
+    if (expired) {
+      shownMessage = "For your security, you're logged out after a period of inactivity. Please log in again to continue.";
+      if (window.clearLoggedInFlag) window.clearLoggedInFlag();
+    }
+  }
+
   dashboardContainer.innerHTML = `
     <div class="gate-message">
       <div class="icon-lock">🔑</div>
-      <h2>Access restricted</h2>
-      <p>${message}</p>
+      <h2>${heading}</h2>
+      <p>${shownMessage}</p>
       <a href="/login.html" class="btn btn-gold">Log in</a>
     </div>
   `;
@@ -95,7 +107,7 @@ async function init() {
   const { user } = await res.json();
 
   if (!user) return gate('You need to log in as a hostel owner to view your dashboard.');
-  if (user.role === 'student') return gate('Only hostel owners have a dashboard to view.');
+  if (user.role === 'student') return gate('Only hostel owners have a dashboard to view.', 'Not for this account');
 
   try {
     const [listingsRes, bookingsRes] = await Promise.all([

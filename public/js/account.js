@@ -2,12 +2,37 @@
 
 const container = document.getElementById('account-container');
 
-function gate(message) {
+// account.html doesn't load area.js, so a small local escape helper (this
+// page only ever injects the current user's own name/phone/email, but
+// escaping is cheap insurance regardless).
+function accountEscapeHTML(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function gate(message, customHeading) {
+  let heading = customHeading;
+  let shownMessage = message;
+
+  if (!customHeading) {
+    const expired = window.wasRecentlyLoggedIn && window.wasRecentlyLoggedIn();
+    heading = expired ? 'Your session has expired' : 'Please log in';
+    if (expired) {
+      shownMessage = "For your security, you're logged out after a period of inactivity. Please log in again to continue.";
+      if (window.clearLoggedInFlag) window.clearLoggedInFlag();
+    }
+  }
+
   container.innerHTML = `
     <div class="gate-message">
       <div class="icon-lock">🔑</div>
-      <h2>Access restricted</h2>
-      <p>${message}</p>
+      <h2>${heading}</h2>
+      <p>${shownMessage}</p>
       <a href="/login.html" class="btn btn-gold">Log in</a>
     </div>
   `;
@@ -23,15 +48,15 @@ function formHTML(user) {
       <form id="profile-form">
         <div class="form-group">
           <label for="name">Full name</label>
-          <input type="text" id="name" name="name" value="${user.name}" required />
+          <input type="text" id="name" name="name" value="${accountEscapeHTML(user.name)}" pattern="[A-Za-z][A-Za-z '\\-]{1,99}" title="Letters only, at least 2 characters" required />
         </div>
         <div class="form-group">
           <label for="phone">Phone number</label>
-          <input type="tel" id="phone" name="phone" value="${user.phone || ''}" required />
+          <input type="tel" id="phone" name="phone" value="${accountEscapeHTML(user.phone || '')}" title="A valid Ghanaian phone number" required />
         </div>
         <div class="form-group">
           <label for="email">Email</label>
-          <input type="email" id="email" name="email" value="${user.email}" required />
+          <input type="email" id="email" name="email" value="${accountEscapeHTML(user.email)}" required />
           <span class="form-note">Changing this will require you to verify the new email before you can log in again.</span>
         </div>
         <button type="submit" class="btn btn-gold btn-block">Save profile</button>
@@ -50,8 +75,8 @@ function formHTML(user) {
         </div>
         <div class="form-group">
           <label for="newPassword">New password</label>
-          <input type="password" id="newPassword" name="newPassword" minlength="6" required />
-          <span class="form-note">At least 6 characters.</span>
+          <input type="password" id="newPassword" name="newPassword" minlength="6" pattern="(?=.*[A-Za-z])(?=.*\d).{6,}" title="At least 6 characters, with at least one letter and one number" required />
+          <span class="form-note">At least 6 characters, with a letter and a number.</span>
         </div>
         <button type="submit" class="btn btn-outline btn-block">Change password</button>
       </form>

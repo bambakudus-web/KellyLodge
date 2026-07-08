@@ -8,6 +8,7 @@ const { loginRateLimit, clearRateLimit } = require('../middleware/rateLimit');
 const { requireLogin } = require('../middleware/auth');
 const { ensureCsrfToken } = require('../middleware/csrf');
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/email');
+const { isValidName, isValidEmail, isValidGhanaPhone, isValidPassword } = require('../utils/validation');
 
 const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 
@@ -20,12 +21,24 @@ router.post('/signup', async (req, res) => {
       return res.status(400).json({ error: 'All fields are required.' });
     }
 
+    if (!isValidName(name)) {
+      return res.status(400).json({ error: 'Enter a real name (letters only, at least 2 characters).' });
+    }
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: 'Enter a valid email address.' });
+    }
+
+    if (!isValidGhanaPhone(phone)) {
+      return res.status(400).json({ error: 'Enter a valid Ghanaian phone number, e.g. 0551234567 or +233551234567.' });
+    }
+
     if (!['student', 'hoster'].includes(role)) {
       return res.status(400).json({ error: 'Role must be student or hoster.' });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+    if (!isValidPassword(password)) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters and include both a letter and a number.' });
     }
 
     const [existing] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
@@ -172,6 +185,9 @@ router.post('/reset-password', async (req, res) => {
     if (newPassword.length < 6) {
       return res.status(400).json({ error: 'Password must be at least 6 characters.' });
     }
+    if (!isValidPassword(newPassword)) {
+      return res.status(400).json({ error: 'Password must include both a letter and a number.' });
+    }
 
     const [rows] = await pool.query(
       'SELECT id, reset_token_expires FROM users WHERE reset_token = ?',
@@ -208,6 +224,18 @@ router.put('/me', requireLogin, async (req, res) => {
 
     if (!name || !phone || !email) {
       return res.status(400).json({ error: 'Name, phone, and email are all required.' });
+    }
+
+    if (!isValidName(name)) {
+      return res.status(400).json({ error: 'Enter a real name (letters only, at least 2 characters).' });
+    }
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: 'Enter a valid email address.' });
+    }
+
+    if (!isValidGhanaPhone(phone)) {
+      return res.status(400).json({ error: 'Enter a valid Ghanaian phone number, e.g. 0551234567 or +233551234567.' });
     }
 
     const [existing] = await pool.query('SELECT id FROM users WHERE email = ? AND id != ?', [email, userId]);
@@ -255,6 +283,9 @@ router.put('/password', requireLogin, async (req, res) => {
     }
     if (newPassword.length < 6) {
       return res.status(400).json({ error: 'New password must be at least 6 characters.' });
+    }
+    if (!isValidPassword(newPassword)) {
+      return res.status(400).json({ error: 'New password must include both a letter and a number.' });
     }
 
     const [[user]] = await pool.query('SELECT password_hash FROM users WHERE id = ?', [userId]);

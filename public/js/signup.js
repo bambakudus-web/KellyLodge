@@ -18,6 +18,14 @@ form.addEventListener('submit', async (e) => {
   const formData = new FormData(form);
   const payload = Object.fromEntries(formData.entries());
 
+  const phoneDigits = String(payload.phone || '').replace(/\D/g, '');
+  const isValidGhanaPhone = /^0\d{9}$/.test(phoneDigits) || /^233\d{9}$/.test(phoneDigits);
+  if (!isValidGhanaPhone) {
+    errorBox.textContent = 'Enter a valid Ghanaian phone number, e.g. 0551234567 or +233551234567.';
+    errorBox.style.display = 'block';
+    return;
+  }
+
   try {
     const res = await fetch('/api/auth/signup', {
       method: 'POST',

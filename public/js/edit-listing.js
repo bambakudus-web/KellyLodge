@@ -133,13 +133,30 @@ function formHTML(listing) {
   `;
 }
 
-function gate(message) {
+function gate(message, customHeading) {
+  let heading = customHeading;
+  let shownMessage = message;
+  let isLoginIssue = !customHeading;
+
+  if (isLoginIssue) {
+    const expired = window.wasRecentlyLoggedIn && window.wasRecentlyLoggedIn();
+    heading = expired ? 'Your session has expired' : 'Please log in';
+    if (expired) {
+      shownMessage = "For your security, you're logged out after a period of inactivity. Please log in again to continue.";
+      if (window.clearLoggedInFlag) window.clearLoggedInFlag();
+    }
+  }
+
+  const cta = isLoginIssue
+    ? '<a href="/login.html" class="btn btn-gold">Log in</a>'
+    : '<a href="/index.html" class="btn btn-gold">Back to Browse</a>';
+
   container.innerHTML = `
     <div class="gate-message">
       <div class="icon-lock">🔑</div>
-      <h2>Access restricted</h2>
-      <p>${message}</p>
-      <a href="/index.html" class="btn btn-gold">Back to Browse</a>
+      <h2>${heading}</h2>
+      <p>${shownMessage}</p>
+      ${cta}
     </div>
   `;
 }
@@ -274,18 +291,18 @@ function attachNewPhotoPreview() {
 
 async function init() {
   const id = getListingIdFromUrl();
-  if (!id) return gate('No listing specified.');
+  if (!id) return gate('No listing specified.', 'Nothing to edit');
 
   const meRes = await fetch('/api/auth/me', { credentials: 'include' });
   const { user } = await meRes.json();
   if (!user) return gate('You need to log in to edit a listing.');
 
   const listingRes = await fetch(`/api/listings/${id}`);
-  if (!listingRes.ok) return gate('This listing could not be found.');
+  if (!listingRes.ok) return gate('This listing could not be found.', 'Listing not found');
   const listing = await listingRes.json();
 
   const canManage = user.role === 'admin' || user.id === listing.owner_id;
-  if (!canManage) return gate('You can only edit your own listings.');
+  if (!canManage) return gate('You can only edit your own listings.', 'Not your listing');
 
   container.innerHTML = formHTML(listing);
   attachAreaToggle();

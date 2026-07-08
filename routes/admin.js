@@ -24,23 +24,65 @@ router.get('/stats', async (req, res) => {
         COUNT(*) AS total
       FROM listings
     `);
-    res.json({ users: userCounts, listings: listingCounts });
+    const [[bookingCounts]] = await pool.query(`
+      SELECT
+        SUM(payment_status = 'pending') AS pending,
+        SUM(payment_status = 'paid') AS paid,
+        SUM(payment_status = 'expired') AS expired,
+        COUNT(*) AS total,
+        COALESCE(SUM(CASE WHEN bookings.payment_status = 'paid' THEN room_types.price ELSE 0 END), 0) AS revenue
+      FROM bookings
+      JOIN room_types ON bookings.room_type_id = room_types.id
+    `);
+    res.json({ users: userCounts, listings: listingCounts, bookings: bookingCounts });
   } catch (err) {
     console.error('Error fetching admin stats:', err);
     res.status(500).json({ error: 'Could not fetch stats.' });
   }
 });
 
-// GET /api/admin/users — every registered user
+// GET /api/admin/users — every registered user, optionally filtered by a
+// name/email search term
 router.get('/users', async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      'SELECT id, name, email, phone, role, created_at FROM users ORDER BY created_at DESC'
-    );
+    const { search } = req.query;
+    let query = 'SELECT id, name, email, phone, role, created_at FROM users';
+    const params = [];
+
+    if (search) {
+      query += ' WHERE name LIKE ? OR email LIKE ?';
+      const term = `%${search}%`;
+      params.push(term, term);
+    }
+
+    query += ' ORDER BY created_at DESC';
+
+    const [rows] = await pool.query(query, params);
     res.json(rows);
   } catch (err) {
     console.error('Error fetching users:', err);
     res.status(500).json({ error: 'Could not fetch users.' });
+  }
+});
+
+// PATCH /api/admin/users/:id/role — promote or demote a user
+router.patch('/users/:id/role', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    if (!['student', 'hoster', 'admin'].includes(role)) {
+      return res.status(400).json({ error: 'Role must be student, hoster, or admin.' });
+    }
+    if (Number(id) === req.session.user.id) {
+      return res.status(400).json({ error: 'You cannot change your own role.' });
+    }
+
+    await pool.query('UPDATE users SET role = ? WHERE id = ?', [role, id]);
+    res.json({ message: `Role updated to ${role}.` });
+  } catch (err) {
+    console.error('Error updating user role:', err);
+    res.status(500).json({ error: 'Could not update role.' });
   }
 });
 
@@ -56,6 +98,29 @@ router.delete('/users/:id', async (req, res) => {
   } catch (err) {
     console.error('Error deleting user:', err);
     res.status(500).json({ error: 'Could not delete user.' });
+  }
+});
+
+// GET /api/admin/bookings — every booking platform-wide, for the revenue/oversight tab
+router.get('/bookings', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT bookings.id, bookings.payment_status, bookings.payment_deadline, bookings.paid_at, bookings.created_at,
+             room_types.room_type, room_types.price,
+             listings.title AS listing_title,
+             student.name AS student_name, student.email AS student_email,
+             owner.name AS owner_name
+      FROM bookings
+      JOIN room_types ON bookings.room_type_id = room_types.id
+      JOIN listings ON bookings.listing_id = listings.id
+      JOIN users AS student ON bookings.student_id = student.id
+      JOIN users AS owner ON listings.owner_id = owner.id
+      ORDER BY bookings.created_at DESC
+    `);
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching all bookings:', err);
+    res.status(500).json({ error: 'Could not fetch bookings.' });
   }
 });
 

@@ -12,10 +12,30 @@ function navEscapeHTML(str) {
     .replace(/'/g, '&#39;');
 }
 
+// Lets every page tell a fresh, never-logged-in visitor apart from someone
+// whose session just expired from inactivity, so the "please log in" gate
+// can say something more accurate than a flat "access restricted" either way.
+const LOGGED_IN_FLAG = 'kl_was_logged_in';
+
+function markLoggedIn() {
+  try { localStorage.setItem(LOGGED_IN_FLAG, '1'); } catch { /* private browsing, etc. */ }
+}
+function clearLoggedInFlag() {
+  try { localStorage.removeItem(LOGGED_IN_FLAG); } catch { /* private browsing, etc. */ }
+}
+function wasRecentlyLoggedIn() {
+  try { return localStorage.getItem(LOGGED_IN_FLAG) === '1'; } catch { return false; }
+}
+// Exposed globally so each page's own script (account.js, dashboard.js, etc.)
+// can use it in their own gate() without importing anything.
+window.wasRecentlyLoggedIn = wasRecentlyLoggedIn;
+window.clearLoggedInFlag = clearLoggedInFlag;
+
 async function getCurrentUser() {
   try {
     const res = await fetch('/api/auth/me', { credentials: 'include' });
     const data = await res.json();
+    if (data.user) markLoggedIn();
     return data.user;
   } catch (err) {
     console.error('Could not check login state:', err);
@@ -64,6 +84,7 @@ function renderNav(user) {
   if (user) {
     document.getElementById('logout-btn').addEventListener('click', async () => {
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+      clearLoggedInFlag();
       window.location.href = '/landing.html';
     });
 

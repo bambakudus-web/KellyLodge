@@ -1850,3 +1850,25 @@ select, input, textarea {
 @media (max-width: 700px) {
   .booking-actions { flex-direction: row; }
 }
+
+/* ---------- Admin: bookings/revenue tab, user search, role select ---------- */
+.status-pill.pending { background: rgba(201, 153, 46, 0.15); color: var(--brass-dark); }
+
+.admin-search-row { margin-bottom: 1rem; }
+.admin-search-row input {
+  max-width: 320px;
+  width: 100%;
+}
+
+.role-select {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
