@@ -8,7 +8,7 @@ const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 // Starts a Paystack transaction and returns the checkout URL to redirect
 // the student to. Amount must be in the smallest currency unit (pesewas
 // for GHS, i.e. cedis * 100).
-async function initializeTransaction({ email, amountCedis, reference }) {
+async function initializeTransaction({ email, amountCedis, reference, bookingId }) {
   if (!PAYSTACK_SECRET_KEY) {
     throw new Error('PAYSTACK_SECRET_KEY is not set.');
   }
@@ -25,6 +25,12 @@ async function initializeTransaction({ email, amountCedis, reference }) {
       currency: 'GHS',
       reference,
       callback_url: `${APP_URL}/payment-callback.html`,
+      metadata: {
+        booking_id: bookingId,
+        custom_fields: [
+          { display_name: 'KellyLodge Booking ID', variable_name: 'booking_id', value: bookingId },
+        ],
+      },
     }),
   });
 

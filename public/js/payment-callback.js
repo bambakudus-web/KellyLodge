@@ -60,3 +60,10 @@ async function init() {
 }
 
 init();
+
+// Same back/forward-cache safeguard as My Bookings: if the browser restores
+// this exact page from memory instead of loading it fresh, re-check the
+// real status rather than leaving a stale "still confirming" message shown.
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) init();
+});

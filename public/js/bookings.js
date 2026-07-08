@@ -143,3 +143,13 @@ async function init() {
 }
 
 init();
+
+// If the browser restores this page from its back/forward cache (e.g. the
+// student clicked "Pay now", then hit the browser's back button instead of
+// completing checkout on Paystack), the page comes back exactly as it was
+// frozen, including a "Redirecting…" button stuck disabled. Reloading the
+// bookings fresh on restore fixes both that stale button and shows the
+// booking's real current payment status.
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) init();
+});

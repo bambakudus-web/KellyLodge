@@ -56,6 +56,7 @@ router.post('/initialize', requireRole('student'), async (req, res) => {
       email: booking.student_email,
       amountCedis: booking.price,
       reference,
+      bookingId: booking.id,
     });
 
     await pool.query('UPDATE bookings SET paystack_reference = ? WHERE id = ?', [reference, booking.id]);
