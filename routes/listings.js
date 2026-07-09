@@ -1,11 +1,10 @@
 // routes/listings.js — all REST endpoints for hostel listings
 const express = require('express');
 const router = express.Router();
-const fs = require('fs');
-const path = require('path');
 const pool = require('../db');
 const { requireRole } = require('../middleware/auth');
 const { uploadMultipleImages } = require('../middleware/upload');
+const { deleteFromCloudinary } = require('../utils/cloudinary');
 
 const VALID_ROOM_TYPES = [
   'Single (self-contained)',
@@ -220,15 +219,16 @@ router.post('/', requireRole('hoster', 'admin'), uploadMultipleImages, async (re
     const cheapest = cleanRoomTypes.reduce((min, rt) => (rt.price < min.price ? rt : min), cleanRoomTypes[0]);
 
     const uploadedFiles = req.files || [];
-    const photoUrls = uploadedFiles.map((f) => `/uploads/${f.filename}`);
+    const photoUrls = uploadedFiles.map((f) => f.cloudinaryUrl);
     const coverUrl = photoUrls[0] || null;
+    const coverPublicId = uploadedFiles[0]?.cloudinaryPublicId || null;
 
     await connection.beginTransaction();
 
     const [result] = await connection.query(
-      `INSERT INTO listings (title, description, area, price, room_type, owner_id, image_url, distance_minutes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [title, description || '', area, cheapest.price, cheapest.roomType, ownerId, coverUrl, distance.value]
+      `INSERT INTO listings (title, description, area, price, room_type, owner_id, image_url, image_public_id, distance_minutes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [title, description || '', area, cheapest.price, cheapest.roomType, ownerId, coverUrl, coverPublicId, distance.value]
     );
 
     const listingId = result.insertId;
@@ -239,10 +239,10 @@ router.post('/', requireRole('hoster', 'admin'), uploadMultipleImages, async (re
       [roomTypeValues]
     );
 
-    if (photoUrls.length > 0) {
-      const photoValues = photoUrls.map((url, i) => [listingId, url, i]);
+    if (uploadedFiles.length > 0) {
+      const photoValues = uploadedFiles.map((f, i) => [listingId, f.cloudinaryUrl, f.cloudinaryPublicId, i]);
       await connection.query(
-        'INSERT INTO listing_photos (listing_id, image_url, sort_order) VALUES ?',
+        'INSERT INTO listing_photos (listing_id, image_url, public_id, sort_order) VALUES ?',
         [photoValues]
       );
     }
@@ -274,11 +274,11 @@ router.get('/mine/all', requireRole('hoster', 'admin'), async (req, res) => {
 });
 
 // DELETE /api/listings/:id — owner of the listing, or admin, can remove it.
-// Also deletes every uploaded photo (cover + gallery) from disk.
+// Also deletes every uploaded photo (cover + gallery) from Cloudinary.
 router.delete('/:id', requireRole('hoster', 'admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    const [rows] = await pool.query('SELECT owner_id, image_url FROM listings WHERE id = ?', [id]);
+    const [rows] = await pool.query('SELECT owner_id, image_public_id FROM listings WHERE id = ?', [id]);
 
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Listing not found.' });
@@ -304,19 +304,12 @@ router.delete('/:id', requireRole('hoster', 'admin'), async (req, res) => {
       });
     }
 
-    const [photos] = await pool.query('SELECT image_url FROM listing_photos WHERE listing_id = ?', [id]);
+    const [photos] = await pool.query('SELECT public_id FROM listing_photos WHERE listing_id = ?', [id]);
 
     await pool.query('DELETE FROM listings WHERE id = ?', [id]);
 
-    const allUrls = [rows[0].image_url, ...photos.map((p) => p.image_url)];
-    for (const url of allUrls) {
-      if (url && url.startsWith('/uploads/')) {
-        const filePath = path.join(__dirname, '..', 'public', url);
-        fs.unlink(filePath, (err) => {
-          if (err && err.code !== 'ENOENT') console.error('Could not delete listing photo:', err);
-        });
-      }
-    }
+    const allPublicIds = [rows[0].image_public_id, ...photos.map((p) => p.public_id)].filter(Boolean);
+    await Promise.all(allPublicIds.map((publicId) => deleteFromCloudinary(publicId)));
 
     res.json({ message: 'Listing removed.' });
   } catch (err) {
@@ -459,15 +452,15 @@ router.put('/:id', requireRole('hoster', 'admin'), uploadMultipleImages, async (
 
     // Photo gallery: remove any photos the hoster asked to remove, then
     // append any newly uploaded ones after the current highest sort order.
-    let removedPhotoFiles = [];
+    let removedPublicIds = [];
     if (removePhotoIds.length > 0) {
       const [toRemove] = await connection.query(
-        'SELECT id, image_url FROM listing_photos WHERE id IN (?) AND listing_id = ?',
+        'SELECT id, public_id FROM listing_photos WHERE id IN (?) AND listing_id = ?',
         [removePhotoIds, id]
       );
       if (toRemove.length > 0) {
         await connection.query('DELETE FROM listing_photos WHERE id IN (?) AND listing_id = ?', [removePhotoIds, id]);
-        removedPhotoFiles = toRemove.map((p) => p.image_url);
+        removedPublicIds = toRemove.map((p) => p.public_id).filter(Boolean);
       }
     }
 
@@ -477,9 +470,9 @@ router.put('/:id', requireRole('hoster', 'admin'), uploadMultipleImages, async (
         'SELECT COALESCE(MAX(sort_order), -1) AS maxOrder FROM listing_photos WHERE listing_id = ?',
         [id]
       );
-      const photoValues = uploadedFiles.map((f, i) => [id, `/uploads/${f.filename}`, maxOrder + 1 + i]);
+      const photoValues = uploadedFiles.map((f, i) => [id, f.cloudinaryUrl, f.cloudinaryPublicId, maxOrder + 1 + i]);
       await connection.query(
-        'INSERT INTO listing_photos (listing_id, image_url, sort_order) VALUES ?',
+        'INSERT INTO listing_photos (listing_id, image_url, public_id, sort_order) VALUES ?',
         [photoValues]
       );
     }
@@ -497,26 +490,20 @@ router.put('/:id', requireRole('hoster', 'admin'), uploadMultipleImages, async (
     }
 
     const [[coverRow]] = await connection.query(
-      'SELECT image_url FROM listing_photos WHERE listing_id = ? ORDER BY sort_order ASC, id ASC LIMIT 1',
+      'SELECT image_url, public_id FROM listing_photos WHERE listing_id = ? ORDER BY sort_order ASC, id ASC LIMIT 1',
       [id]
     );
     const newCoverUrl = coverRow ? coverRow.image_url : null;
+    const newCoverPublicId = coverRow ? coverRow.public_id : null;
 
     await connection.query(
-      'UPDATE listings SET title = ?, description = ?, area = ?, price = ?, room_type = ?, image_url = ?, distance_minutes = ? WHERE id = ?',
-      [title, description || '', area, cheapest.price, cheapest.roomType, newCoverUrl, distance.value, id]
+      'UPDATE listings SET title = ?, description = ?, area = ?, price = ?, room_type = ?, image_url = ?, image_public_id = ?, distance_minutes = ? WHERE id = ?',
+      [title, description || '', area, cheapest.price, cheapest.roomType, newCoverUrl, newCoverPublicId, distance.value, id]
     );
 
     await connection.commit();
 
-    for (const url of removedPhotoFiles) {
-      if (url && url.startsWith('/uploads/')) {
-        const filePath = path.join(__dirname, '..', 'public', url);
-        fs.unlink(filePath, (err) => {
-          if (err && err.code !== 'ENOENT') console.error('Could not delete removed photo:', err);
-        });
-      }
-    }
+    await Promise.all(removedPublicIds.map((publicId) => deleteFromCloudinary(publicId)));
 
     res.json({ id, message: 'Listing updated successfully.' });
   } catch (err) {

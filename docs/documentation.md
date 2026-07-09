@@ -58,7 +58,7 @@ Students at Kumasi Technical University who need off-campus accommodation curren
 | Backend | Node.js + Express | Lightweight REST API framework; pairs naturally with a JavaScript frontend for a single-language stack. |
 | Auth | express-session + bcryptjs | Session-based auth is simpler to reason about than token-based auth for a project of this scope; bcrypt ensures passwords are never stored in plain text. |
 | Email | Brevo transactional email API | Used for verification emails, password reset links, and booking notifications to hosters; free tier is sufficient for project scale. |
-| File uploads | Multer + a real image-signature check | Accepts hostel photos as actual file uploads (not just URLs); validates the file's real byte signature (not just its extension) before accepting it, to reject disguised non-image files. |
+| File uploads | Multer (in-memory) + Cloudinary + a real image-signature check | Accepts hostel photos as actual file uploads (not just URLs); validates the file's real byte signature (not just its extension) before accepting it. Files are uploaded straight to Cloudinary rather than local disk, since Railway's filesystem doesn't persist between deploys, saving to local disk would silently lose every photo on the next `git push`. |
 | Database | MySQL | Relational structure fits the users/listings/room_types/bookings/reviews/favorites relationships; widely taught and supported; integrates cleanly with Railway's managed MySQL plugin. |
 | Security middleware | Custom CSRF token check + login rate limiting | Protects state-changing requests (POST/PUT/DELETE) from cross-site request forgery, and slows down brute-force login attempts. |
 | Deployment | Railway | Single platform hosts both the Node.js app and the MySQL database. |
@@ -108,7 +108,7 @@ Key relationships:
 - One user (`hoster` or `admin`) owns many listings (`listings.owner_id`).
 - One listing has many room types (`room_types.listing_id`), each tracking its own `total_quantity` / `available_quantity` independently.
 - One booking references exactly one room type, one listing, and one student; a booking decrements that room type's `available_quantity` by one.
-- One listing has many gallery photos (`listing_photos.listing_id`); `listings.image_url` is kept as a denormalized "current cover photo" for fast card rendering, and is recomputed whenever photos are added, removed, or a new cover is chosen.
+- One listing has many gallery photos (`listing_photos.listing_id`); `listings.image_url` is kept as a denormalized "current cover photo" for fast card rendering, and is recomputed whenever photos are added, removed, or a new cover is chosen. Both `listings` and `listing_photos` also carry a `public_id` column (`image_public_id` on listings), Cloudinary's identifier for that specific asset, needed to actually delete an image from Cloudinary later since the URL alone isn't enough for that.
 - A review requires the student to already have a row in `bookings` for that listing; the `UNIQUE (listing_id, student_id)` constraint means resubmitting a review updates it (upsert) rather than creating duplicates.
 - `status` on `listings` supports admin moderation without permanently deleting data.
 

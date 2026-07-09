@@ -1,94 +1,69 @@
-# KellyLodge: branded emails, strict signup validation, admin powerhouse, friendlier session gates
+# KellyLodge: switch listing photo uploads to Cloudinary
 
-## 1. Branded email templates
-Every email KellyLodge sends (verification, password reset, booking, payment
-reminder/confirmation, expiry notice) now uses a shared branded template:
-navy header with the KellyLodge wordmark, a brass accent bar, a details box
-for booking/payment info, and a proper button instead of a raw text link.
-Table-based HTML so it renders correctly across Gmail, Outlook, etc.
+Fixes the root cause of uploaded photos disappearing: Railway's filesystem
+doesn't persist across deploys, so anything saved to local disk (the old
+`public/uploads/` approach) gets wiped on the next `git push`. Uploads now go
+straight to Cloudinary instead, permanent, CDN-served, and automatically
+resized/compressed.
 
-New: utils/email.js (full rewrite, same function names/signatures, so
-nothing else needed to change to pick this up).
+## New files
+- utils/cloudinary.js (SDK config + upload/delete helpers)
+- database/add_cloudinary_fields.js (migration)
 
-## 2. Strict signup/login validation
-Previously signup only checked "is something typed" and password length.
-Now, both server-side (the real gate) and with matching client-side hints:
-- Name: letters only (plus spaces/apostrophes/hyphens), at least 2 characters.
-  Rejects "123", "asdf!!", single letters.
-- Email: proper format check (something@something.tld).
-- Phone: must be a real Ghanaian number, either 0XXXXXXXXX or +233XXXXXXXXX.
-- Password: at least 6 characters AND must contain both a letter and a number
-  (rejects "111111" or "aaaaaa").
+## Modified files
+- middleware/upload.js (full rewrite: memory storage + Cloudinary upload instead of disk)
+- routes/listings.js (create/edit/delete all use Cloudinary URLs + public_ids now)
+- package.json (added the `cloudinary` dependency)
+- .env.example (documents the 3 new required variables)
+- docs/documentation.md (tech justification + ERD note updated)
 
-Applied to: signup, profile updates (Account page), password changes, and
-password resets.
+## Required setup
 
-New: utils/validation.js. Modified: routes/auth.js, public/js/signup.js,
-public/js/account.js, public/signup.html.
-
-## 3. Admin powerhouse
-- New "Bookings & Revenue" tab: total revenue collected (from paid bookings),
-  pending-payment count, and a full table of every booking platform-wide
-  (listing, student, owner, payment status).
-- Users tab now has a live search box (by name or email).
-- Each user row (except your own) now has a role dropdown, promote/demote
-  between student, hoster, and admin directly, with a confirmation prompt.
-- The "Delete user" button already existed in the code, it's confirmed
-  working, might just not have been noticed before.
-
-New endpoints: GET /api/admin/bookings, PATCH /api/admin/users/:id/role,
-GET /api/admin/users now accepts ?search=. Modified: routes/admin.js,
-public/js/admin.js, public/css/style.css.
-
-## 4. Friendlier session-expiry messaging
-Every "gate" screen (shown when you're not logged in, or logged in as the
-wrong role) used to say "Access restricted" regardless of why. Now:
-- If your session just expired from inactivity: "Your session has expired"
-  with an explanation, not an accusation.
-- If you've simply never logged in: "Please log in."
-- If you're logged in but the page isn't for your role (e.g. a student
-  hitting the hoster dashboard): a specific heading like "Not for this
-  account", "Listing not found", "Not your listing", "Admins only", etc.,
-  instead of one generic word for every situation.
-
-This works by nav.js remembering (via localStorage) that you were
-successfully logged in at some point, so it can tell "never logged in" apart
-from "was logged in, now isn't" without the backend needing to change at all.
-
-Modified: public/js/nav.js, account.js, bookings.js, dashboard.js,
-edit-listing.js, admin.js, favorites.js, post.js.
+1. **Create a free Cloudinary account** at https://cloudinary.com if you
+   haven't already.
+2. On your Cloudinary dashboard (console.cloudinary.com), find your
+   **Product Environment Credentials**: Cloud Name, API Key, API Secret.
+3. Set these on Railway (never commit real values to git):
+   - `CLOUDINARY_CLOUD_NAME`
+   - `CLOUDINARY_API_KEY`
+   - `CLOUDINARY_API_SECRET`
 
 ## Apply
 
 ```bash
 cd ~/kellylodge
-unzip -o /mnt/c/Users/USER/Downloads/kellylodge_v16_patch.zip -d .
+unzip -o /mnt/c/Users/USER/Downloads/kellylodge_v21_patch.zip -d .
+npm install
+node database/add_cloudinary_fields.js
 git add -A
 git status
 ```
 
-Confirm all 15 files above show as modified/new, then:
+Confirm all 7 files above show as new/modified, plus `package-lock.json`
+should have updated too (from `npm install`). Then:
 
 ```bash
-git commit -m "Branded email templates, strict signup validation, admin bookings/revenue tab and role management, friendlier session-expiry messaging"
+git commit -m "Move listing photo uploads from local disk to Cloudinary"
 git push origin main
+railway run node database/add_cloudinary_fields.js
 ```
 
-No database migration needed, this patch is pure code.
+## Then: re-upload your photos one more time
+
+This is the last time you'll need to do this. Go to each listing's edit page
+and re-upload the photos, they'll now be stored on Cloudinary permanently and
+will survive every future deploy.
 
 ## Test checklist
 
-1. Sign up with a fake name like "123" or "!!!", confirm it's rejected with
-   a clear message. Try a weak password like "aaaaaa", confirm it's rejected.
-   Try a phone number that isn't a real Ghanaian number.
-2. Trigger any email (sign up, book a room, reset password) and check your
-   inbox, it should look like a real branded email now, not raw text.
-3. Log in as admin, open the new "Bookings & Revenue" tab, confirm it shows
-   real data. Search for a user by name in the Users tab. Try changing a
-   user's role via the dropdown.
-4. To test the session-expiry message without waiting a week: log in, then
-   in another tab call `POST /api/auth/logout` directly (or just clear the
-   session cookie via dev tools), then try to load My Bookings or Account,
-   you should see "Your session has expired" instead of "Access restricted."
-   Then open a fresh incognito window and go straight to My Bookings without
-   ever logging in, you should see the plainer "Please log in" instead.
+1. Post a new listing with photos, confirm the image shows immediately and
+   the URL in your browser's dev tools points to `res.cloudinary.com`, not
+   `/uploads/...`.
+2. Edit that listing: remove one photo, add another, set a different one as
+   cover, confirm all three actions work and persist after a refresh.
+3. Delete a listing (with no active bookings), then check your Cloudinary
+   Media Library, confirm those images were actually removed there too, not
+   left orphaned.
+4. Push some unrelated small change and redeploy, confirm the photos are
+   still there afterward (this is the actual regression test for the bug
+   that started this).
