@@ -27,11 +27,13 @@ router.post('/initialize', requireRole('student'), async (req, res) => {
     const [[booking]] = await pool.query(
       `SELECT bookings.id, bookings.student_id, bookings.payment_status, bookings.paystack_reference,
               room_types.price, listings.title AS listing_title,
-              users.email AS student_email
+              users.email AS student_email,
+              owner.paystack_subaccount_code
        FROM bookings
        JOIN room_types ON bookings.room_type_id = room_types.id
        JOIN listings ON bookings.listing_id = listings.id
        JOIN users ON bookings.student_id = users.id
+       JOIN users AS owner ON listings.owner_id = owner.id
        WHERE bookings.id = ?`,
       [booking_id]
     );
@@ -57,6 +59,7 @@ router.post('/initialize', requireRole('student'), async (req, res) => {
       amountCedis: booking.price,
       reference,
       bookingId: booking.id,
+      subaccountCode: booking.paystack_subaccount_code || undefined,
     });
 
     await pool.query('UPDATE bookings SET paystack_reference = ? WHERE id = ?', [reference, booking.id]);

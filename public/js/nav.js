@@ -49,9 +49,6 @@ function renderNav(user) {
   if (!nav || !header) return;
 
   const topLinks = [`<a href="/index.html">Browse</a>`];
-  if (user) {
-    topLinks.push(`<a href="/messages.html">Messages<span class="nav-badge" id="nav-unread-badge" style="display:none;"></span></a>`);
-  }
 
   if (!user) {
     topLinks.push(`<a href="/login.html">Log in</a>`);
@@ -64,6 +61,7 @@ function renderNav(user) {
     if (user.role === 'student') menuLinks.push(`<a href="/favorites.html">Favorites</a>`);
     if (user.role === 'hoster') menuLinks.push(`<a href="/post.html">Post a listing</a>`);
     if (user.role === 'hoster') menuLinks.push(`<a href="/dashboard.html">Dashboard</a>`);
+    if (user.role === 'hoster') menuLinks.push(`<a href="/payout-settings.html">Payout Settings</a>`);
     if (user.role === 'admin') menuLinks.push(`<a href="/admin.html">Admin</a>`);
     menuLinks.push(`<a href="/account.html">Account</a>`);
 
@@ -130,26 +128,22 @@ function renderNav(user) {
     });
   });
 
-  if (user) loadUnreadBadge();
+  if (user) loadChatWidget(user);
 }
 
-// A snapshot-on-page-load count, not real-time (real-time updates only
-// happen within messages.html itself, so every other page doesn't need its
-// own socket connection just for a badge number).
-async function loadUnreadBadge() {
-  try {
-    const res = await fetch('/api/messages/unread-count', { credentials: 'include' });
-    if (!res.ok) return;
-    const { unreadCount } = await res.json();
-    const badge = document.getElementById('nav-unread-badge');
-    if (!badge) return;
-    if (unreadCount > 0) {
-      badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
-      badge.style.display = 'inline-block';
-    }
-  } catch (err) {
-    console.error('Could not load unread message count:', err);
+// The floating chat bubble lives outside any single page, so it's loaded
+// here, once, on every page a logged-in user visits, rather than needing a
+// dedicated Messages page or a <script> tag added to every HTML file.
+function loadChatWidget(user) {
+  if (window.KellyLodgeChatWidget) {
+    window.KellyLodgeChatWidget.init(user);
+    return;
   }
+
+  const script = document.createElement('script');
+  script.src = '/js/chat-widget.js';
+  script.onload = () => window.KellyLodgeChatWidget?.init(user);
+  document.body.appendChild(script);
 }
 
 async function initNav() {

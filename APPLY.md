@@ -1,73 +1,94 @@
-# KellyLodge: real-time in-app messaging
+# KellyLodge: floating chat widget + automatic hoster payouts
 
-Students and hosters can now chat directly inside the app, in real time,
-instead of relying only on phone calls. One conversation thread per
-(listing, student) pair.
+## Part 1 — Floating chat bubble (replaces the full-page messages.html)
 
-## New files
-- database/add_messaging.js (migration: conversations + messages tables)
-- utils/socket.js (the real-time server, shares the same session as the rest of the app)
-- routes/messages.js (REST: conversation list, message history, starting a thread)
-- public/messages.html (inbox + thread UI)
-- public/js/messages.js (all the client-side chat logic)
+Messaging is now a small bubble icon fixed in the bottom-right corner on
+every logged-in page, tap it, a compact popup opens with your conversation
+list, tap a thread to chat. No more dedicated page. Socket.io itself only
+loads the first time someone actually opens the widget.
 
-## Modified files
-- server.js (switched to a raw HTTP server so Socket.io can attach; mounts
-  the messages router; starts the socket server alongside the existing
-  booking-expiry sweep)
-- middleware/csrf.js (exempts Socket.io's HTTP polling fallback path)
-- package.json (added the `socket.io` dependency)
-- public/js/nav.js (adds a "Messages" link with a live unread-count badge)
-- public/js/listing.js (adds a "Message" button next to "Call" for students)
-- public/css/style.css (the whole chat UI: inbox list, thread bubbles, mobile layout)
+New: public/js/chat-widget.js
+Modified: public/js/nav.js (injects the widget for logged-in users, removed
+the old "Messages" nav link), public/js/listing.js ("Message" button opens
+the widget directly instead of navigating away), public/css/style.css (all
+the widget's styling).
 
-## How it works, in short
+The old public/messages.html and public/js/messages.js still exist and
+still work if you ever want them, they're just no longer linked from
+anywhere. Safe to ignore or delete later.
 
-- Real-time delivery happens over WebSockets (Socket.io), which shares your
-  existing login session, no separate chat login needed.
-- If a browser/network can't do a real WebSocket connection, it automatically
-  falls back to HTTP polling, same chat, just slightly less instant.
-- Messages are always saved to the database regardless of whether the other
-  person is online, so nothing is lost, they'll see it next time they open
-  the app.
-- The nav badge shows unread count as of page load (not live-updating on
-  every other page, only inside Messages itself, so browsing/listing pages
-  don't need their own permanent socket connection just for a badge number).
+## Part 2 — Automatic hoster payouts (Paystack Subaccounts)
+
+**Important context on how this works:** right now, when a student pays,
+100% of the money goes into your own Paystack account. This patch lets each
+hoster connect their own bank/mobile money account (once, from their
+dashboard), and Paystack automatically splits every future payment: the
+hoster's share goes straight to them, you keep a platform fee (10% by
+default, set PLATFORM_FEE_PERCENT to change it). You do NOT create accounts
+for hosters manually, they do it themselves via a form, and the app calls
+Paystack's API to set it up.
+
+**Bookings made before a hoster sets up payouts** still pay 100% into your
+account as before, nothing breaks for hosters who haven't onboarded yet.
+
+New: database/add_payouts.js (migration), routes/payouts.js,
+public/payout-settings.html, public/js/payout-settings.js
+
+Modified: utils/paystack.js (added bank listing, account verification,
+subaccount creation, and split support in the transaction initialize call),
+routes/payments.js (passes the hoster's subaccount code when starting a
+payment), server.js (mounts the payouts router), public/js/nav.js (adds a
+"Payout Settings" link for hosters), public/js/dashboard.js (shows a banner
+reminding hosters to set up payouts if they haven't), .env.example
+(documents PLATFORM_FEE_PERCENT).
+
+### ⚠️ Before trusting this with real bookings
+
+This involves real money splitting automatically, please do one thing
+before relying on it: as a test hoster account, set up payout details, then
+have a test student complete one real (small) payment, and manually check
+in your Paystack dashboard that the subaccount actually received its
+expected share and your main account received the platform fee. I built
+this against Paystack's documented split-payment behavior, but I can't run
+a live transaction myself to confirm it end to end, that first real test is
+the actual verification.
 
 ## Apply
 
 ```bash
 cd ~/kellylodge
-unzip -o /mnt/c/Users/USER/Downloads/kellylodge_v22_patch.zip -d .
-npm install
-node database/add_messaging.js
+unzip -o /mnt/c/Users/USER/Downloads/kellylodge_v23_patch.zip -d .
+node database/add_payouts.js
 git add -A
 git status
 ```
 
-Confirm all 11 files above show as new/modified (plus `package-lock.json`
-updated from `npm install`), then:
+Confirm all 13 files above show as new/modified, then:
 
 ```bash
-git commit -m "Add real-time in-app messaging with Socket.io"
+git commit -m "Add floating chat widget, automatic hoster payouts via Paystack Subaccounts"
 git push origin main
-railway run node database/add_messaging.js
+railway run node database/add_payouts.js
 ```
 
-No new environment variables needed, it reuses your existing session setup.
+No new npm packages needed for this one (Cloudinary and Socket.io were
+already added in earlier patches).
 
 ## Test checklist
 
-1. As a student, open a listing, click "Message" next to "Call", confirm it
-   takes you to Messages with that conversation open.
-2. Send a message. Open a second browser (or incognito window), log in as
-   that listing's owner, go to Messages, confirm the conversation and
-   message show up.
-3. With both windows open side by side, send messages back and forth,
-   confirm they appear instantly on both sides without refreshing.
-4. Check the unread badge in the nav updates after navigating away and back.
-5. Close one browser entirely, send a message from the other side, reopen
-   the closed one and confirm the message is there waiting (this confirms
-   persistence works independent of who's online).
-6. Try it on a phone-sized screen, confirm the inbox/thread views switch
-   properly with the back button, not squeezed side by side.
+**Chat widget:**
+1. Log in as a student, open any listing, click "Message", confirm the
+   floating panel opens directly into that conversation (not a separate page).
+2. Confirm the bubble icon appears on every page while logged in (browse,
+   dashboard, account, etc.), not just the listing page.
+3. Send messages back and forth between two accounts, confirm the bubble
+   shows an unread badge and "bumps" when a message arrives while closed.
+
+**Payouts:**
+1. Log in as a hoster, go to Payout Settings (via the nav dropdown), select
+   a bank, enter an account number, click "Verify account", confirm it shows
+   a real account holder name back to you.
+2. Save it, confirm the dashboard's reminder banner disappears.
+3. Complete a real test payment as a student for that hoster's listing, then
+   check your Paystack dashboard's Transactions to confirm it actually split
+   (this is the important one, see the warning above).

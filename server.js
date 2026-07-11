@@ -13,6 +13,7 @@ const bookingsRouter = require('./routes/bookings');
 const reviewsRouter = require('./routes/reviews');
 const favoritesRouter = require('./routes/favorites');
 const paymentsRouter = require('./routes/payments');
+const payoutsRouter = require('./routes/payouts');
 const messagesRouter = require('./routes/messages');
 const { expirePendingBookings } = require('./utils/expireBookings');
 const initSocket = require('./utils/socket');
@@ -71,6 +72,7 @@ app.use('/api/bookings', bookingsRouter);
 app.use('/api/reviews', reviewsRouter);
 app.use('/api/favorites', favoritesRouter);
 app.use('/api/payments', paymentsRouter);
+app.use('/api/payouts', payoutsRouter);
 app.use('/api/messages', messagesRouter);
 
 // Simple health check — useful for confirming Railway deployment is alive

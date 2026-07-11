@@ -110,17 +110,26 @@ async function init() {
   if (user.role === 'student') return gate('Only hostel owners have a dashboard to view.', 'Not for this account');
 
   try {
-    const [listingsRes, bookingsRes] = await Promise.all([
+    const [listingsRes, bookingsRes, payoutRes] = await Promise.all([
       fetch('/api/listings/mine/all', { credentials: 'include' }),
       fetch('/api/bookings/received', { credentials: 'include' }),
+      fetch('/api/payouts/status', { credentials: 'include' }),
     ]);
 
     if (!listingsRes.ok || !bookingsRes.ok) throw new Error('Failed to load dashboard data');
 
     const listings = await listingsRes.json();
     const bookings = await bookingsRes.json();
+    const payoutStatus = payoutRes.ok ? await payoutRes.json() : null;
 
-    dashboardContainer.innerHTML = listingsSectionHTML(listings) + bookingsSectionHTML(bookings);
+    const payoutBanner = payoutStatus && !payoutStatus.isSetUp
+      ? `<div class="access-banner">
+          <span>You haven't set up payouts yet. Until you do, your share of booking payments stays with KellyLodge instead of reaching you automatically.</span>
+          <span class="access-banner-actions"><a href="/payout-settings.html" class="btn btn-gold btn-small">Set up payouts</a></span>
+        </div>`
+      : '';
+
+    dashboardContainer.innerHTML = payoutBanner + listingsSectionHTML(listings) + bookingsSectionHTML(bookings);
   } catch (err) {
     console.error(err);
     dashboardContainer.innerHTML = '<p class="state-message">Something went wrong loading your dashboard.</p>';

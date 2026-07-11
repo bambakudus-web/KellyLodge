@@ -164,28 +164,12 @@ function attachMessageOwnerHandler() {
   const btn = document.querySelector('.message-owner-btn');
   if (!btn) return;
 
-  btn.addEventListener('click', async () => {
-    btn.disabled = true;
-    btn.textContent = 'Opening…';
-    try {
-      const res = await secureFetch('/api/messages/conversations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ listing_id: btn.dataset.listingId }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.error || 'Could not start a conversation.');
-        btn.disabled = false;
-        btn.textContent = 'Message';
-        return;
-      }
-      window.location.href = `/messages.html?conversation=${data.id}`;
-    } catch (err) {
-      alert('Could not reach the server. Please try again.');
-      btn.disabled = false;
-      btn.textContent = 'Message';
+  btn.addEventListener('click', () => {
+    if (!window.KellyLodgeChatWidget) {
+      alert('Chat is still loading, please try again in a moment.');
+      return;
     }
+    window.KellyLodgeChatWidget.openConversationFor(btn.dataset.listingId);
   });
 }
 
