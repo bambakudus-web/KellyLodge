@@ -4,6 +4,7 @@ const express = require('express');
 const session = require('express-session');
 const cors = require('cors');
 const path = require('path');
+const http = require('http');
 
 const authRouter = require('./routes/auth');
 const listingsRouter = require('./routes/listings');
@@ -12,7 +13,9 @@ const bookingsRouter = require('./routes/bookings');
 const reviewsRouter = require('./routes/reviews');
 const favoritesRouter = require('./routes/favorites');
 const paymentsRouter = require('./routes/payments');
+const messagesRouter = require('./routes/messages');
 const { expirePendingBookings } = require('./utils/expireBookings');
+const initSocket = require('./utils/socket');
 const { csrfProtection } = require('./middleware/csrf');
 
 if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
@@ -37,7 +40,7 @@ app.use(express.json({
   },
 }));
 
-app.use(session({
+const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET || 'kellylodge-dev-secret-change-in-production',
   resave: false,
   saveUninitialized: false,
@@ -46,7 +49,9 @@ app.use(session({
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
   },
-}));
+});
+
+app.use(sessionMiddleware);
 
 app.use(csrfProtection);
 
@@ -66,6 +71,7 @@ app.use('/api/bookings', bookingsRouter);
 app.use('/api/reviews', reviewsRouter);
 app.use('/api/favorites', favoritesRouter);
 app.use('/api/payments', paymentsRouter);
+app.use('/api/messages', messagesRouter);
 
 // Simple health check — useful for confirming Railway deployment is alive
 app.get('/api/health', (req, res) => {
@@ -75,7 +81,12 @@ app.get('/api/health', (req, res) => {
 // Only start listening when this file is run directly (node server.js),
 // not when it's required by the test suite.
 if (require.main === module) {
-  app.listen(PORT, () => {
+  // Socket.io needs the raw HTTP server (not just the Express app) to
+  // attach its WebSocket upgrade handling to.
+  const httpServer = http.createServer(app);
+  initSocket(httpServer, sessionMiddleware);
+
+  httpServer.listen(PORT, () => {
     console.log(`KellyLodge server running on port ${PORT}`);
   });
 

@@ -1872,3 +1872,177 @@ select, input, textarea {
   color: var(--ink);
   cursor: pointer;
 }
+
+/* =========================================================================
+   Real-time messaging: nav badge, inbox list, thread view
+   ========================================================================= */
+
+.nav-badge {
+  display: none;
+  background: var(--danger, #b43c3c);
+  color: white;
+  font-size: 0.68rem;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+}
+
+.messages-shell {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 0;
+  max-width: 1100px;
+  margin: 0 auto 3rem;
+  min-height: 520px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.conversation-list {
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+  max-height: 640px;
+  background: var(--paper);
+}
+
+.conversation-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.6rem;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  padding: 0.9rem 1rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+.conversation-item:hover { background: var(--paper-deep); }
+.conversation-item.active { background: white; border-left: 3px solid var(--brass); }
+
+.ci-main { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.ci-name { font-weight: 700; font-family: var(--font-display); font-size: 0.95rem; }
+.ci-listing { font-size: 0.75rem; color: var(--brass-dark); }
+.ci-preview {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+.ci-side { display: flex; flex-direction: column; align-items: flex-end; gap: 0.3rem; flex-shrink: 0; }
+.ci-time { font-size: 0.7rem; color: var(--ink-soft); white-space: nowrap; }
+.ci-unread {
+  background: var(--brass);
+  color: white;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+}
+
+.thread-panel {
+  display: flex;
+  flex-direction: column;
+  background: white;
+}
+.thread-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-soft);
+  padding: 2rem;
+  text-align: center;
+}
+
+.thread-header {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.9rem 1.2rem;
+  border-bottom: 1px solid var(--line);
+}
+.thread-header h3 { margin: 0; font-size: 1rem; }
+.thread-back {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.thread-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 460px;
+}
+
+.msg-bubble-row { display: flex; }
+.msg-bubble-row.mine { justify-content: flex-end; }
+.msg-bubble-row.theirs { justify-content: flex-start; }
+
+.msg-bubble {
+  max-width: 72%;
+  padding: 0.55rem 0.85rem;
+  border-radius: 14px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.msg-bubble-row.mine .msg-bubble { background: var(--brass); color: white; border-bottom-right-radius: 4px; }
+.msg-bubble-row.theirs .msg-bubble { background: var(--paper-deep); color: var(--ink); border-bottom-left-radius: 4px; }
+.msg-bubble p { margin: 0; word-break: break-word; }
+.msg-time { display: block; font-size: 0.65rem; opacity: 0.7; margin-top: 0.25rem; text-align: right; }
+
+.typing-indicator {
+  height: 1.2rem;
+  padding: 0 1.2rem;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+.thread-input-row {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.9rem 1.2rem;
+  border-top: 1px solid var(--line);
+}
+.thread-input-row input {
+  flex: 1;
+}
+
+@media (max-width: 768px) {
+  .messages-shell {
+    grid-template-columns: 1fr;
+    margin: 0 1rem 2rem;
+    position: relative;
+    min-height: 70vh;
+  }
+  .conversation-list {
+    max-height: none;
+    border-right: none;
+  }
+  .thread-panel {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: white;
+  }
+  .messages-shell.thread-open .conversation-list { display: none; }
+  .messages-shell.thread-open .thread-panel { display: flex; }
+  .thread-back { display: inline-block; }
+}

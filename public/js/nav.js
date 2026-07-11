@@ -49,6 +49,9 @@ function renderNav(user) {
   if (!nav || !header) return;
 
   const topLinks = [`<a href="/index.html">Browse</a>`];
+  if (user) {
+    topLinks.push(`<a href="/messages.html">Messages<span class="nav-badge" id="nav-unread-badge" style="display:none;"></span></a>`);
+  }
 
   if (!user) {
     topLinks.push(`<a href="/login.html">Log in</a>`);
@@ -126,6 +129,27 @@ function renderNav(user) {
       header.querySelector('.nav-toggle')?.classList.remove('open');
     });
   });
+
+  if (user) loadUnreadBadge();
+}
+
+// A snapshot-on-page-load count, not real-time (real-time updates only
+// happen within messages.html itself, so every other page doesn't need its
+// own socket connection just for a badge number).
+async function loadUnreadBadge() {
+  try {
+    const res = await fetch('/api/messages/unread-count', { credentials: 'include' });
+    if (!res.ok) return;
+    const { unreadCount } = await res.json();
+    const badge = document.getElementById('nav-unread-badge');
+    if (!badge) return;
+    if (unreadCount > 0) {
+      badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+      badge.style.display = 'inline-block';
+    }
+  } catch (err) {
+    console.error('Could not load unread message count:', err);
+  }
 }
 
 async function initNav() {

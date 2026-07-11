@@ -9,10 +9,12 @@ function ensureCsrfToken(req) {
 }
 
 // Login/signup happen before a session-bound token can exist, a forced
-// logout via CSRF is low-severity, and the Paystack webhook is called
+// logout via CSRF is low-severity, the Paystack webhook is called
 // server-to-server (verified instead by its own HMAC signature, see
-// routes/payments.js), so those paths are exempt.
-const EXEMPT_PATHS = ['/api/auth/login', '/api/auth/signup', '/api/auth/logout', '/api/payments/webhook'];
+// routes/payments.js), and Socket.io's HTTP long-polling fallback (used
+// only when a browser/network can't do a real WebSocket upgrade) carries
+// its own session-based auth in utils/socket.js, so those paths are exempt.
+const EXEMPT_PATHS = ['/api/auth/login', '/api/auth/signup', '/api/auth/logout', '/api/payments/webhook', '/socket.io/'];
 
 function csrfProtection(req, res, next) {
   const safeMethods = ['GET', 'HEAD', 'OPTIONS'];
