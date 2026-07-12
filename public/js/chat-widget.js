@@ -169,15 +169,81 @@ window.KellyLodgeChatWidget = (function () {
     const body = document.getElementById('klw-panel-body');
     if (!body || activeConversationId) return;
 
+    const newMessageButton = currentUser.role === 'student'
+      ? `<button class="klw-new-message-btn" id="klw-new-message-btn">+ New message</button>`
+      : '';
+
     if (conversations.length === 0) {
-      body.innerHTML = '<p class="klw-empty">No conversations yet. Message a hostel owner from any listing to start one.</p>';
-      return;
+      body.innerHTML = `
+        ${newMessageButton}
+        <p class="klw-empty">${currentUser.role === 'student' ? 'No conversations yet. Search for a hostel above to message its owner.' : 'No conversations yet. A student will show up here once they message you.'}</p>
+      `;
+    } else {
+      body.innerHTML = `${newMessageButton}<div class="klw-conv-list">${conversations.map(conversationItemHTML).join('')}</div>`;
+      body.querySelectorAll('.klw-conv-item').forEach((btn) => {
+        btn.addEventListener('click', () => openThread(Number(btn.dataset.id)));
+      });
     }
 
-    body.innerHTML = `<div class="klw-conv-list">${conversations.map(conversationItemHTML).join('')}</div>`;
-    body.querySelectorAll('.klw-conv-item').forEach((btn) => {
-      btn.addEventListener('click', () => openThread(Number(btn.dataset.id)));
+    document.getElementById('klw-new-message-btn')?.addEventListener('click', showNewMessageSearch);
+  }
+
+  let searchDebounce = null;
+
+  function showNewMessageSearch() {
+    const body = document.getElementById('klw-panel-body');
+    document.getElementById('klw-back').style.display = 'inline-block';
+    document.getElementById('klw-panel-title').textContent = 'New message';
+
+    body.innerHTML = `
+      <div class="klw-search-wrap">
+        <input type="text" id="klw-search-input" placeholder="Search hostels by name…" autocomplete="off" />
+        <div id="klw-search-results"><p class="klw-empty">Start typing a hostel name.</p></div>
+      </div>
+    `;
+
+    const input = document.getElementById('klw-search-input');
+    input.focus();
+    input.addEventListener('input', () => {
+      clearTimeout(searchDebounce);
+      const term = input.value.trim();
+      if (!term) {
+        document.getElementById('klw-search-results').innerHTML = '<p class="klw-empty">Start typing a hostel name.</p>';
+        return;
+      }
+      searchDebounce = setTimeout(() => runListingSearch(term), 300);
     });
+  }
+
+  async function runListingSearch(term) {
+    const resultsEl = document.getElementById('klw-search-results');
+    if (!resultsEl) return;
+    resultsEl.innerHTML = '<p class="klw-empty">Searching…</p>';
+
+    try {
+      const res = await fetch(`/api/listings?search=${encodeURIComponent(term)}&limit=6`, { credentials: 'include' });
+      const data = await res.json();
+      const listings = data.listings || [];
+
+      if (listings.length === 0) {
+        resultsEl.innerHTML = '<p class="klw-empty">No hostels match that search.</p>';
+        return;
+      }
+
+      resultsEl.innerHTML = listings.map((l) => `
+        <button class="klw-search-result" data-id="${l.id}">
+          <span class="klw-conv-name">${escHTML(l.title)}</span>
+          <span class="klw-conv-listing">${escHTML(l.area)}</span>
+        </button>
+      `).join('');
+
+      resultsEl.querySelectorAll('.klw-search-result').forEach((btn) => {
+        btn.addEventListener('click', () => openConversationFor(btn.dataset.id));
+      });
+    } catch (err) {
+      console.error(err);
+      resultsEl.innerHTML = '<p class="klw-empty">Could not search right now.</p>';
+    }
   }
 
   function showConversationList() {
