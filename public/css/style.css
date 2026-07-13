@@ -568,6 +568,17 @@ select:focus, input:focus, textarea:focus, button:focus {
   font-weight: 600;
 }
 
+.form-info {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+  padding: 0.85rem 1.1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  margin-bottom: 1.1rem;
+  font-weight: 500;
+}
+
 /* ---------- Footer ---------- */
 
 .site-footer {
@@ -888,39 +899,15 @@ select:focus, input:focus, textarea:focus, button:focus {
 }
 .demo-hint strong { color: var(--ink); }
 
-/* ---------- Nav user menu ---------- */
+/* ---------- Nav: flat icon toolbar (desktop) / vertical list (mobile) ---------- */
 
-.nav-user {
-  position: relative;
-  margin-left: 0.6rem;
-  padding-left: 0.8rem;
-  border-left: 1px solid rgba(255,255,255,0.15);
-}
-
-.nav-user-trigger {
+.nav-profile-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.2);
-  color: white;
-  padding: 0.4rem 0.8rem;
-  border-radius: 999px;
-  cursor: pointer;
-  font-size: 0.83rem;
-  font-weight: 700;
-  font-family: inherit;
 }
-.nav-user-trigger:hover { background: rgba(255,255,255,0.18); }
-.nav-user-trigger .who { color: rgba(255,255,255,0.9); font-weight: 600; }
-.nav-user-trigger .chevron {
-  font-size: 0.7rem;
-  color: rgba(255,255,255,0.6);
-  transition: transform 0.15s ease;
-}
-.nav-user-trigger[aria-expanded="true"] .chevron { transform: rotate(180deg); }
-
-.nav-user .badge {
+.nav-profile-header .who { color: rgba(255,255,255,0.9); font-weight: 600; font-size: 0.85rem; }
+.nav-profile-header .badge {
   font-family: var(--font-mono);
   background: var(--brass);
   color: var(--night);
@@ -931,47 +918,48 @@ select:focus, input:focus, textarea:focus, button:focus {
   border-radius: 20px;
 }
 
-.nav-dropdown-divider { height: 1px; background: rgba(255,255,255,0.12); margin: 0.4rem 0; }
+.nav-item, .nav-logout {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: rgba(255,255,255,0.85);
+  background: none;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
 
 @media (min-width: 769px) {
-  .nav-links .nav-icon { display: none; }
-
-  .nav-dropdown {
-    display: none;
-    position: absolute;
-    top: calc(100% + 0.6rem);
-    right: 0;
-    min-width: 52px;
-    background: var(--night);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 10px;
-    padding: 0.4rem;
-    box-shadow: 0 14px 28px rgba(0,0,0,0.35);
-    z-index: 20;
-  }
-  .nav-dropdown.open { display: block; }
-  .nav-dropdown a, .nav-dropdown button {
+  #site-nav {
     display: flex;
+    flex-direction: row;
     align-items: center;
-    justify-content: center;
-    position: relative;
+    gap: 0.2rem;
+  }
+  .nav-profile-header {
+    order: 90;
+    margin: 0 0.5rem 0 1rem;
+    padding-left: 1rem;
+    border-left: 1px solid rgba(255,255,255,0.15);
+  }
+  .nav-logout { order: 100; }
+
+  .nav-item, .nav-logout {
     width: 40px;
     height: 40px;
-    padding: 0;
-    color: rgba(255,255,255,0.85);
-    background: none;
-    border: none;
-    border-radius: 6px;
-    font-family: inherit;
-    cursor: pointer;
+    justify-content: center;
+    border-radius: 8px;
   }
-  .nav-dropdown .nav-icon { display: inline-flex; }
-  .nav-dropdown .nav-icon svg { width: 18px; height: 18px; }
-  .nav-dropdown .nav-link-label {
+  .nav-item:hover, .nav-logout:hover { background: rgba(255,255,255,0.1); color: white; }
+
+  .nav-item .nav-icon svg, .nav-logout .nav-icon svg { width: 18px; height: 18px; }
+  .nav-item .nav-link-label, .nav-logout .nav-link-label {
     position: absolute;
-    right: calc(100% + 10px);
-    top: 50%;
-    transform: translateY(-50%);
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
     background: var(--ink);
     color: white;
     padding: 0.32rem 0.65rem;
@@ -983,8 +971,7 @@ select:focus, input:focus, textarea:focus, button:focus {
     pointer-events: none;
     transition: opacity 0.12s ease;
   }
-  .nav-dropdown a:hover, .nav-dropdown button:hover { background: rgba(255,255,255,0.1); color: white; }
-  .nav-dropdown a:hover .nav-link-label, .nav-dropdown button:hover .nav-link-label { opacity: 1; }
+  .nav-item:hover .nav-link-label, .nav-logout:hover .nav-link-label { opacity: 1; }
 }
 
 /* ---------- Admin dashboard ---------- */
@@ -1202,51 +1189,24 @@ table.admin-table tr:hover { background: rgba(192, 138, 33, 0.04); }
   .site-header nav a.cta { justify-content: center; margin-top: 0.4rem; }
   .nav-icon svg { width: 18px; height: 18px; flex-shrink: 0; }
 
-  .nav-user {
-    border-left: none;
-    border-top: 1px solid rgba(255,255,255,0.15);
-    margin-left: 0;
-    padding-left: 0;
-    padding-top: 0.7rem;
-    margin-top: 0.5rem;
-    width: 100%;
+  .nav-profile-header {
+    padding: 0.75rem 0.9rem 0.9rem;
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+    margin-bottom: 0.4rem;
   }
-  .nav-user-trigger {
-    width: 100%;
-    justify-content: space-between;
-    background: none;
-    border: none;
-    padding: 0.4rem 0;
-  }
-  .nav-user-trigger .chevron { display: none; }
 
-  /* On mobile the dropdown isn't a floating panel, it's just the rest of
-     the already-open drawer, so it's always expanded inline, with icons
-     and full labels shown (no hover tooltips, there's no hover on touch). */
-  .nav-dropdown { display: block; padding-left: 0.2rem; }
-  .nav-dropdown a, .nav-dropdown button {
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
+  .nav-item, .nav-logout {
     width: 100%;
-    height: auto;
-    text-align: left;
-    padding: 0.6rem 0.5rem;
-    color: rgba(255,255,255,0.85);
-    background: none;
-    border: none;
+    padding: 0.75rem 0.9rem;
+    border-radius: 8px;
     font-size: 0.92rem;
-    font-family: inherit;
-    cursor: pointer;
+    text-align: left;
   }
-  .nav-dropdown .nav-link-label {
-    position: static;
-    opacity: 1;
-    background: none;
-    padding: 0;
-    transform: none;
-    color: inherit;
-    font-weight: 500;
+  .nav-item:hover, .nav-logout:hover { background: rgba(255,255,255,0.08); color: white; }
+  .nav-logout {
+    margin-top: 0.5rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid rgba(255,255,255,0.15);
   }
 
   .hero h1 { font-size: 1.6rem; }

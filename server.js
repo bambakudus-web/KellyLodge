@@ -45,8 +45,16 @@ const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET || 'kellylodge-dev-secret-change-in-production',
   resave: false,
   saveUninitialized: false,
+  // Rolling + a short maxAge together give an actual inactivity timeout
+  // (not just a fixed expiry): every request that touches the session
+  // pushes the expiry another 5 minutes out. Paired with nav.js's
+  // client-side activity watcher (which sends a lightweight heartbeat
+  // request while someone's genuinely active), this is real server-side
+  // enforcement, not just a client-side suggestion, so it still protects a
+  // shared computer even if the browser tab gets closed and reopened later.
+  rolling: true,
   cookie: {
-    maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+    maxAge: 1000 * 60 * 5, // 5 minutes
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
   },

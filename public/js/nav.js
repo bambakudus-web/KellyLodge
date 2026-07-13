@@ -29,7 +29,7 @@ const NAV_ICONS = {
 };
 
 function navLink(href, iconName, label, extraClass) {
-  return `<a href="${href}"${extraClass ? ` class="${extraClass}"` : ''} data-tooltip="${label}"><span class="nav-icon">${NAV_ICONS[iconName]}</span><span class="nav-link-label">${label}</span></a>`;
+  return `<a href="${href}" class="nav-item${extraClass ? ' ' + extraClass : ''}" data-tooltip="${label}"><span class="nav-icon">${NAV_ICONS[iconName]}</span><span class="nav-link-label">${label}</span></a>`;
 }
 
 // Lets every page tell a fresh, never-logged-in visitor apart from someone
@@ -63,67 +63,55 @@ async function getCurrentUser() {
   }
 }
 
+async function doLogout(reason) {
+  try {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+  } catch { /* logging out anyway, don't block on this */ }
+  clearLoggedInFlag();
+  window.location.href = reason ? `/login.html?reason=${reason}` : '/landing.html';
+}
+
 function renderNav(user) {
   const header = document.querySelector('.site-header');
   const nav = document.getElementById('site-nav');
   if (!nav || !header) return;
 
-  const topLinks = [navLink('/index.html', 'browse', 'Browse')];
-
   if (!user) {
-    topLinks.push(navLink('/login.html', 'login', 'Log in'));
-    topLinks.push(navLink('/signup.html', 'signup', 'Sign up', 'cta'));
-
-    nav.innerHTML = `<div class="nav-links">${topLinks.join('')}</div>`;
-  } else {
-    const menuLinks = [];
-    if (user.role === 'student') menuLinks.push(navLink('/mybookings.html', 'bookings', 'My Bookings'));
-    if (user.role === 'student') menuLinks.push(navLink('/favorites.html', 'favorites', 'Favorites'));
-    if (user.role === 'hoster') menuLinks.push(navLink('/post.html', 'post', 'Post a listing'));
-    if (user.role === 'hoster') menuLinks.push(navLink('/dashboard.html', 'dashboard', 'Dashboard'));
-    if (user.role === 'hoster') menuLinks.push(navLink('/payout-settings.html', 'payout', 'Payout Settings'));
-    if (user.role === 'admin') menuLinks.push(navLink('/admin.html', 'admin', 'Admin'));
-    menuLinks.push(navLink('/account.html', 'account', 'Account'));
-
     nav.innerHTML = `
-      <div class="nav-links">${topLinks.join('')}</div>
-      <div class="nav-user">
-        <button type="button" class="nav-user-trigger" id="nav-user-trigger" aria-haspopup="true" aria-expanded="false">
-          <span class="who">${navEscapeHTML(user.name)}</span>
-          <span class="badge">${user.role}</span>
-          <span class="chevron">&#9662;</span>
-        </button>
-        <div class="nav-dropdown" id="nav-dropdown">
-          ${menuLinks.join('')}
-          <div class="nav-dropdown-divider"></div>
-          <button type="button" id="logout-btn" data-tooltip="Log out"><span class="nav-icon">${NAV_ICONS.logout}</span><span class="nav-link-label">Log out</span></button>
-        </div>
+      <div class="nav-links">
+        <a href="/index.html">Browse</a>
+        <a href="/login.html">Log in</a>
+        <a href="/signup.html" class="cta">Sign up</a>
       </div>
     `;
+    return;
   }
 
-  if (user) {
-    document.getElementById('logout-btn').addEventListener('click', async () => {
-      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-      clearLoggedInFlag();
-      window.location.href = '/landing.html';
-    });
+  // One flat list, authored in exactly the order the mobile drawer wants
+  // top-to-bottom (profile header, then Browse, then everything else, then
+  // Log out last). Desktop rearranges this same markup visually with CSS
+  // `order`, rather than needing a second, separate structure.
+  const items = [navLink('/index.html', 'browse', 'Browse')];
+  if (user.role === 'student') items.push(navLink('/mybookings.html', 'bookings', 'My Bookings'));
+  if (user.role === 'student') items.push(navLink('/favorites.html', 'favorites', 'Favorites'));
+  if (user.role === 'hoster') items.push(navLink('/post.html', 'post', 'Post a listing'));
+  if (user.role === 'hoster') items.push(navLink('/dashboard.html', 'dashboard', 'Dashboard'));
+  if (user.role === 'hoster') items.push(navLink('/payout-settings.html', 'payout', 'Payout Settings'));
+  if (user.role === 'admin') items.push(navLink('/admin.html', 'admin', 'Admin'));
+  items.push(navLink('/account.html', 'account', 'Account'));
 
-    // Desktop dropdown: toggle on click, close on an outside click.
-    const trigger = document.getElementById('nav-user-trigger');
-    const dropdown = document.getElementById('nav-dropdown');
-    trigger.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const isOpen = dropdown.classList.toggle('open');
-      trigger.setAttribute('aria-expanded', String(isOpen));
-    });
-    document.addEventListener('click', (e) => {
-      if (dropdown.classList.contains('open') && !dropdown.contains(e.target) && e.target !== trigger) {
-        dropdown.classList.remove('open');
-        trigger.setAttribute('aria-expanded', 'false');
-      }
-    });
-  }
+  nav.innerHTML = `
+    <div class="nav-profile-header">
+      <span class="who">${navEscapeHTML(user.name)}</span>
+      <span class="badge">${user.role}</span>
+    </div>
+    ${items.join('')}
+    <button type="button" class="nav-item nav-logout" id="logout-btn" data-tooltip="Log out">
+      <span class="nav-icon">${NAV_ICONS.logout}</span><span class="nav-link-label">Log out</span>
+    </button>
+  `;
+
+  document.getElementById('logout-btn').addEventListener('click', () => doLogout());
 
   // Hamburger toggle + backdrop for small screens, only build them once
   if (!header.querySelector('.nav-toggle')) {
@@ -154,16 +142,52 @@ function renderNav(user) {
     });
     backdrop.addEventListener('click', closeDrawer);
 
-    // Close the drawer whenever a real nav link/action is tapped, but not
-    // the dropdown trigger itself (that would close the whole drawer
-    // instead of just revealing the dropdown's contents).
     nav.addEventListener('click', (e) => {
-      const el = e.target.closest('.nav-links a, .nav-dropdown a, .nav-dropdown button');
-      if (el) closeDrawer();
+      if (e.target.closest('.nav-item')) closeDrawer();
     });
   }
 
-  if (user) loadChatWidget(user);
+  loadChatWidget(user);
+  startInactivityWatch();
+}
+
+// Logs the user out automatically after 5 minutes with no interaction
+// anywhere in the app (mouse movement, clicks, key presses, scrolling, or
+// touches all count as activity). Paired with a matching server-side
+// rolling session timeout (see server.js), so this isn't just a client-side
+// suggestion, the session itself actually expires on the same schedule.
+const INACTIVITY_LIMIT_MS = 5 * 60 * 1000;
+const HEARTBEAT_INTERVAL_MS = 60 * 1000; // keep the server session's rolling window alive
+let inactivityWatchStarted = false;
+
+function startInactivityWatch() {
+  if (inactivityWatchStarted) return;
+  inactivityWatchStarted = true;
+
+  let lastActivity = Date.now();
+  let lastHeartbeat = Date.now();
+
+  const markActive = () => {
+    lastActivity = Date.now();
+
+    // A request only reaches the server here, not on every single
+    // mousemove, so genuine activity keeps the server-side rolling session
+    // alive without spamming it with a request per pixel of mouse movement.
+    if (Date.now() - lastHeartbeat > HEARTBEAT_INTERVAL_MS) {
+      lastHeartbeat = Date.now();
+      fetch('/api/auth/me', { credentials: 'include' }).catch(() => {});
+    }
+  };
+
+  ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart'].forEach((evt) => {
+    document.addEventListener(evt, markActive, { passive: true });
+  });
+
+  setInterval(() => {
+    if (Date.now() - lastActivity >= INACTIVITY_LIMIT_MS) {
+      doLogout('inactivity');
+    }
+  }, 15000);
 }
 
 // The floating chat bubble lives outside any single page, so it's loaded
