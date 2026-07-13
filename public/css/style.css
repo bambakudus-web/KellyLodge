@@ -1172,7 +1172,11 @@ table.admin-table tr:hover { background: rgba(192, 138, 33, 0.04); }
     position: fixed;
     inset: 0;
     background: rgba(19, 26, 46, 0.5);
-    z-index: 999;
+    /* Must stay below .site-header's z-index (20), or it renders above the
+       drawer nested inside the header and swallows every click meant for
+       the actual links, the drawer would still be visible through it, just
+       completely unclickable. */
+    z-index: 15;
   }
   .nav-backdrop.open { display: block; }
 
