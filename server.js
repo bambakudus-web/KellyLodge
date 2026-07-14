@@ -43,7 +43,12 @@ app.use(express.json({
 
 const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET || 'kellylodge-dev-secret-change-in-production',
-  resave: false,
+  // true, not false: guarantees the session is re-saved (and its expiry
+  // actually extended) on every request, including the plain heartbeat
+  // pings from nav.js's activity watcher. With resave:false this depends on
+  // the store implementing touch() correctly, true removes that doubt for
+  // a mechanism the 5-minute inactivity timeout actually depends on working.
+  resave: true,
   saveUninitialized: false,
   // Rolling + a short maxAge together give an actual inactivity timeout
   // (not just a fixed expiry): every request that touches the session

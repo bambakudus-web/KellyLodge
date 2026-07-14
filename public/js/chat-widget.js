@@ -106,6 +106,17 @@ window.KellyLodgeChatWidget = (function () {
   function setupSocket() {
     socket = io({ withCredentials: true });
 
+    socket.on('connect_error', (err) => {
+      if (err.message === 'unauthorized') showSessionExpiredNotice();
+    });
+
+    socket.on('disconnect', (reason) => {
+      // "io server disconnect" means the server deliberately closed this
+      // (see utils/socket.js's periodic session re-check), not a network
+      // hiccup, that's specifically the expired-session case.
+      if (reason === 'io server disconnect') showSessionExpiredNotice();
+    });
+
     socket.on('new_message', (msg) => {
       if (msg.conversation_id === activeConversationId) {
         appendLiveMessage(msg);
@@ -348,6 +359,15 @@ window.KellyLodgeChatWidget = (function () {
     } else {
       badge.style.display = 'none';
     }
+  }
+
+  function showSessionExpiredNotice() {
+    socketReady = false;
+    const body = document.getElementById('klw-panel-body');
+    if (body) {
+      body.innerHTML = '<p class="klw-empty">Your session has expired. Please log in again to keep chatting.</p>';
+    }
+    bumpBadgeDot();
   }
 
   function bumpBadgeDot() {

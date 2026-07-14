@@ -24,6 +24,26 @@ function initSocket(httpServer, sessionMiddleware) {
     // have open, without needing to track individual socket ids ourselves.
     socket.join(`user:${socket.user.id}`);
 
+    // socket.request.session was only read once, at connect time. If the
+    // underlying HTTP session later expires (the 5-minute inactivity
+    // timeout) while this socket stays open, nothing would otherwise ever
+    // notice, WebSocket messages don't re-run session middleware the way
+    // HTTP requests do. Re-running it periodically against the same
+    // request object gives a fresh read from the session store, so an
+    // idle-but-still-connected socket actually gets cut off in step with
+    // everything else, instead of quietly outliving its own session.
+    const sessionCheckInterval = setInterval(() => {
+      sessionMiddleware(socket.request, {}, () => {
+        if (!socket.request.session?.user) {
+          socket.disconnect(true);
+        }
+      });
+    }, 60 * 1000);
+
+    socket.on('disconnect', () => {
+      clearInterval(sessionCheckInterval);
+    });
+
     socket.on('join_conversation', async (conversationId) => {
       try {
         const [[conversation]] = await pool.query(
