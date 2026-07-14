@@ -35,7 +35,10 @@ async function expirePendingBookings() {
         `UPDATE room_types SET available_quantity = LEAST(available_quantity + 1, total_quantity) WHERE id = ?`,
         [booking.room_type_id]
       );
-      await connection.query("UPDATE bookings SET payment_status = 'expired' WHERE id = ?", [booking.id]);
+      // Deleted outright, not just marked 'expired' — an unpaid booking
+      // whose 72-hour window has passed shouldn't keep cluttering the
+      // student's My Bookings list.
+      await connection.query('DELETE FROM bookings WHERE id = ?', [booking.id]);
 
       await connection.commit();
 

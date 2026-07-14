@@ -428,6 +428,13 @@ select:focus, input:focus, textarea:focus, button:focus {
   color: var(--brass-dark);
 }
 .price .unit { font-size: 0.72rem; font-weight: 500; color: var(--ink-soft); font-family: var(--font-body); }
+.price.price-gated {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  font-style: italic;
+}
 
 .card-stub .room-type {
   color: var(--ink-soft);
@@ -1255,6 +1262,7 @@ table.admin-table tr:hover { background: rgba(192, 138, 33, 0.04); }
   color: var(--brass-dark);
 }
 .rooms-left.rooms-full { color: var(--ink-soft); }
+.rooms-left.rooms-gated { color: var(--ink-soft); font-style: italic; text-transform: none; }
 
 .rooms-box {
   margin-top: 1.6rem;
@@ -1410,6 +1418,7 @@ table.admin-table tr:hover { background: rgba(192, 138, 33, 0.04); }
 .booking-received-item .bri-contact a { color: inherit; }
 .booking-received-item .bri-side { text-align: right; }
 .booking-received-item .bri-date { font-size: 0.75rem; color: var(--ink-soft); margin-top: 0.2rem; }
+.booking-received-item .booking-delete-btn { margin-top: 0.6rem; }
 
 @media (max-width: 768px) {
   .dashboard-section { margin: 0 1rem 1.5rem; }

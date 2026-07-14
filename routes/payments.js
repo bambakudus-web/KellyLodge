@@ -1,19 +1,12 @@
 // routes/payments.js — starting a Paystack payment for a booking, and
-// receiving Paystack's webhook confirming it succeeded.
+// confirming it succeeded (via webhook, and via active reconciliation).
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 const pool = require('../db');
 const { requireRole } = require('../middleware/auth');
-const { initializeTransaction, verifyTransaction, isValidWebhookSignature } = require('../utils/paystack');
-const {
-  sendPaymentConfirmationEmailToStudent,
-  sendPaymentConfirmationEmailToOwner,
-} = require('../utils/email');
-const {
-  sendPaymentConfirmationSMSToStudent,
-  sendPaymentConfirmationSMSToOwner,
-} = require('../utils/sms');
+const { initializeTransaction, isValidWebhookSignature } = require('../utils/paystack');
+const { reconcileByReference } = require('../utils/reconcilePayment');
 
 // POST /api/payments/initialize — student starts paying for one of their
 // own pending bookings; returns the Paystack checkout URL to redirect to.
@@ -93,103 +86,38 @@ router.post('/webhook', async (req, res) => {
 
     if (event.event !== 'charge.success') return;
 
-    const reference = event.data.reference;
-
-    // A valid signature only proves the request body wasn't tampered with in
-    // transit, it does NOT prove a real charge happened (Paystack's own
-    // connectivity-test pings can be signed and shaped like a real event).
-    // Independently asking Paystack's verify API "did this reference really
-    // succeed" closes that gap, only Paystack's own transaction records are
-    // trusted for the actual yes/no.
-    let verified;
-    try {
-      verified = await verifyTransaction(reference);
-    } catch (err) {
-      console.warn(`Could not independently verify reference "${reference}", refusing to mark it paid:`, err.message);
-      return;
+    const result = await reconcileByReference(event.data.reference);
+    if (result.status !== 'newly_paid' && result.status !== 'already_paid') {
+      console.warn(`Webhook for reference "${event.data.reference}" did not result in a paid booking: ${result.status}`);
     }
-
-    if (!verified || verified.status !== 'success') {
-      console.warn(`Reference "${reference}" is not a verified successful transaction (status: ${verified?.status}), ignoring.`);
-      return;
-    }
-
-    const [[booking]] = await pool.query(
-      `SELECT bookings.id, bookings.payment_status,
-              room_types.room_type, room_types.price, listings.title AS listing_title,
-              student.name AS student_name, student.email AS student_email, student.phone AS student_phone,
-              owner.name AS owner_name, owner.email AS owner_email, owner.phone AS owner_phone
-       FROM bookings
-       JOIN room_types ON bookings.room_type_id = room_types.id
-       JOIN listings ON bookings.listing_id = listings.id
-       JOIN users AS student ON bookings.student_id = student.id
-       JOIN users AS owner ON listings.owner_id = owner.id
-       WHERE bookings.paystack_reference = ?`,
-      [reference]
-    );
-
-    if (!booking) {
-      console.warn(`Verified webhook for unknown Paystack reference: ${reference}`);
-      return;
-    }
-
-    const expectedAmountKobo = Math.round(Number(booking.price) * 100);
-    if (verified.amount !== expectedAmountKobo) {
-      console.warn(
-        `Reference "${reference}" paid amount (${verified.amount}) does not match booking #${booking.id}'s expected amount (${expectedAmountKobo}), refusing to mark it paid.`
-      );
-      return;
-    }
-
-    // Idempotency: Paystack can send the same webhook more than once, and
-    // the expiry job could theoretically race with a late webhook, only
-    // act the first time this booking is marked paid.
-    const [updateResult] = await pool.query(
-      "UPDATE bookings SET payment_status = 'paid', paid_at = NOW() WHERE id = ? AND payment_status = 'pending'",
-      [booking.id]
-    );
-    if (updateResult.affectedRows === 0) return;
-
-    console.log(`Booking #${booking.id} confirmed paid (reference: ${reference}, verified amount: ${verified.amount}).`);
-
-    sendPaymentConfirmationEmailToStudent({
-      toEmail: booking.student_email,
-      toName: booking.student_name,
-      listingTitle: booking.listing_title,
-    });
-    sendPaymentConfirmationEmailToOwner({
-      toEmail: booking.owner_email,
-      toName: booking.owner_name,
-      studentName: booking.student_name,
-      listingTitle: booking.listing_title,
-      roomType: booking.room_type,
-      price: booking.price,
-    });
-    sendPaymentConfirmationSMSToStudent({
-      studentPhone: booking.student_phone,
-      listingTitle: booking.listing_title,
-    });
-    sendPaymentConfirmationSMSToOwner({
-      ownerPhone: booking.owner_phone,
-      studentName: booking.student_name,
-      listingTitle: booking.listing_title,
-    });
   } catch (err) {
     console.error('Error processing Paystack webhook:', err);
   }
 });
 
 // GET /api/payments/status/:bookingId — lets the frontend poll after
-// returning from Paystack's checkout, in case the webhook hasn't landed yet.
+// returning from Paystack's checkout. Rather than only reading whatever's
+// currently in the DB (which depends entirely on the webhook having already
+// landed — not guaranteed, e.g. if it's misconfigured or slow), this
+// actively re-checks with Paystack itself first whenever the booking is
+// still sitting as "pending", so the frontend gets the true status even if
+// the webhook never arrives.
 router.get('/status/:bookingId', requireRole('student'), async (req, res) => {
   try {
     const [[booking]] = await pool.query(
-      'SELECT id, student_id, payment_status FROM bookings WHERE id = ?',
+      'SELECT id, student_id, payment_status, paystack_reference FROM bookings WHERE id = ?',
       [req.params.bookingId]
     );
 
     if (!booking || booking.student_id !== req.session.user.id) {
       return res.status(404).json({ error: 'Booking not found.' });
+    }
+
+    if (booking.payment_status === 'pending' && booking.paystack_reference) {
+      const result = await reconcileByReference(booking.paystack_reference);
+      if (result.status === 'newly_paid' || result.status === 'already_paid') {
+        return res.json({ payment_status: 'paid' });
+      }
     }
 
     res.json({ payment_status: booking.payment_status });

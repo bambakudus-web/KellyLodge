@@ -5,6 +5,7 @@ const pool = require('../db');
 const { requireRole } = require('../middleware/auth');
 const { sendBookingNotification, sendPaymentReminderEmail } = require('../utils/email');
 const { sendBookingSMSToOwner, sendBookingSMSToStudent } = require('../utils/sms');
+const { reconcileByReference } = require('../utils/reconcilePayment');
 
 const PAYMENT_WINDOW_HOURS = 72;
 
@@ -133,6 +134,40 @@ router.get('/mine', requireRole('student'), async (req, res) => {
        ORDER BY bookings.created_at DESC`,
       [req.session.user.id]
     );
+
+    // Self-healing: if the Paystack webhook never landed (misconfigured
+    // webhook URL, a slow retry, etc.) a booking can be stuck showing
+    // "pending" even though the student really did pay. Rather than trust
+    // the DB alone, actively re-check any still-pending booking with
+    // Paystack directly whenever the student opens this page, this doesn't
+    // depend on the webhook or the callback page having worked at all.
+    const stillPending = rows.filter((b) => b.payment_status === 'pending' && b.paystack_reference);
+    if (stillPending.length > 0) {
+      let anyUpdated = false;
+      for (const b of stillPending) {
+        try {
+          const result = await reconcileByReference(b.paystack_reference);
+          if (result.status === 'newly_paid' || result.status === 'already_paid') {
+            b.payment_status = 'paid';
+            anyUpdated = true;
+          }
+        } catch (err) {
+          console.error(`Reconciliation check failed for booking #${b.id}:`, err.message);
+        }
+      }
+      if (anyUpdated) {
+        // Re-read paid_at for whichever rows just flipped, cheap since it's few rows.
+        const [fresh] = await pool.query(
+          'SELECT id, paid_at FROM bookings WHERE id IN (?)',
+          [stillPending.map((b) => b.id)]
+        );
+        const paidAtById = new Map(fresh.map((f) => [f.id, f.paid_at]));
+        rows.forEach((b) => {
+          if (paidAtById.has(b.id) && b.payment_status === 'paid') b.paid_at = paidAtById.get(b.id);
+        });
+      }
+    }
+
     res.json(rows);
   } catch (err) {
     console.error('Error fetching bookings:', err);
@@ -172,19 +207,28 @@ router.get('/received', requireRole('hoster', 'admin'), async (req, res) => {
   }
 });
 
-// DELETE /api/bookings/:id — cancel a booking, frees the room type slot back up.
-// A booking that's already been paid for can't be self-cancelled here, since
-// there's no automatic refund flow — the student needs to go through the
-// owner (or admin) directly for that.
-router.delete('/:id', requireRole('student'), async (req, res) => {
+// DELETE /api/bookings/:id — remove a booking, frees the room type slot back up.
+// Two people can do this:
+//  - the student who made it, but only while it's still 'pending' (there's
+//    no automatic refund flow, so a paid booking needs to go through the
+//    owner or admin directly instead)
+//  - the hoster who owns the listing (or an admin), any time, for any
+//    status, this is their call to make about their own room, e.g.
+//    clearing out a booking after a guest leaves, or rejecting one they
+//    don't want to honor.
+router.delete('/:id', requireRole('student', 'hoster', 'admin'), async (req, res) => {
   const connection = await pool.getConnection();
   try {
     const { id } = req.params;
+    const requester = req.session.user;
 
     await connection.beginTransaction();
 
     const [bookings] = await connection.query(
-      'SELECT room_type_id, student_id, payment_status FROM bookings WHERE id = ?',
+      `SELECT bookings.room_type_id, bookings.student_id, bookings.payment_status, listings.owner_id
+       FROM bookings
+       JOIN listings ON bookings.listing_id = listings.id
+       WHERE bookings.id = ?`,
       [id]
     );
 
@@ -193,12 +237,18 @@ router.delete('/:id', requireRole('student'), async (req, res) => {
       return res.status(404).json({ error: 'Booking not found.' });
     }
 
-    if (bookings[0].student_id !== req.session.user.id) {
+    const booking = bookings[0];
+    const isOwnStudentBooking = requester.role === 'student' && booking.student_id === requester.id;
+    const isOwningHoster = requester.role === 'hoster' && booking.owner_id === requester.id;
+    const isAdmin = requester.role === 'admin';
+
+    if (!isOwnStudentBooking && !isOwningHoster && !isAdmin) {
       await connection.rollback();
-      return res.status(403).json({ error: 'You can only cancel your own bookings.' });
+      return res.status(403).json({ error: 'You do not have permission to delete this booking.' });
     }
 
-    if (bookings[0].payment_status === 'paid') {
+    // Students can only self-cancel while it's still unpaid, hosters/admins may remove any status.
+    if (isOwnStudentBooking && booking.payment_status === 'paid') {
       await connection.rollback();
       return res.status(400).json({
         error: 'This booking has already been paid for. Contact the owner directly to arrange a cancellation or refund.',
@@ -209,16 +259,16 @@ router.delete('/:id', requireRole('student'), async (req, res) => {
       `UPDATE room_types
        SET available_quantity = LEAST(available_quantity + 1, total_quantity)
        WHERE id = ?`,
-      [bookings[0].room_type_id]
+      [booking.room_type_id]
     );
     await connection.query('DELETE FROM bookings WHERE id = ?', [id]);
 
     await connection.commit();
-    res.json({ message: 'Booking cancelled.' });
+    res.json({ message: 'Booking deleted.' });
   } catch (err) {
     await connection.rollback();
-    console.error('Error cancelling booking:', err);
-    res.status(500).json({ error: 'Could not cancel the booking.' });
+    console.error('Error deleting booking:', err);
+    res.status(500).json({ error: 'Could not delete the booking.' });
   } finally {
     connection.release();
   }

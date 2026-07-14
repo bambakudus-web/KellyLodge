@@ -134,6 +134,12 @@ function renderListings(listings, page, totalPages) {
     const roomsBadge = roomsAvailable > 0
       ? `<span class="rooms-left">${roomsAvailable} room${roomsAvailable === 1 ? '' : 's'} available</span>`
       : `<span class="rooms-left rooms-full">Fully booked</span>`;
+    const priceOrGateHTML = currentUser
+      ? `<div class="price">From GH₵ ${Number(listing.price).toLocaleString()} <span class="unit">/ year</span></div>`
+      : `<div class="price price-gated">Log in to see price</div>`;
+    const roomsBadgeOrGateHTML = currentUser
+      ? roomsBadge
+      : `<span class="rooms-left rooms-gated">Log in to see availability</span>`;
 
     const ratingBadge = listing.review_count > 0
       ? `<span class="card-rating"><span class="rating-stars">${starsHTML(listing.avg_rating)}</span> ${Number(listing.avg_rating).toFixed(1)}</span>`
@@ -151,10 +157,10 @@ function renderListings(listings, page, totalPages) {
         <div class="card-stub">
           <span class="notch-l"></span><span class="notch-r"></span>
           <h3>${escapeHTML(listing.title)}</h3>
-          <div class="price">From GH₵ ${Number(listing.price).toLocaleString()} <span class="unit">/ year</span></div>
+          ${priceOrGateHTML}
           <div class="room-type">${listing.room_type}</div>
           <div class="card-meta-row">${ratingBadge}${distanceBadge}</div>
-          ${roomsBadge}
+          ${roomsBadgeOrGateHTML}
         </div>
       </a>
       ${currentUser && currentUser.role === 'student' ? favoriteOverlayHTML(listing.id) : ''}

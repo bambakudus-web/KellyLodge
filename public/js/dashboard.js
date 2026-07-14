@@ -75,7 +75,7 @@ function bookingsSectionHTML(bookings) {
   }
 
   const rows = bookings.map((b) => `
-    <div class="booking-received-item">
+    <div class="booking-received-item" data-booking-id="${b.id}">
       <div class="bri-main">
         <h3>${escapeHTML(b.student_name)}</h3>
         <div class="bri-meta">
@@ -90,6 +90,7 @@ function bookingsSectionHTML(bookings) {
       <div class="bri-side">
         <div class="price">GH₵ ${Number(b.price).toLocaleString()}</div>
         <div class="bri-date">${formatDate(b.created_at)}</div>
+        <button class="btn btn-danger btn-small booking-delete-btn" data-booking-id="${b.id}">Delete</button>
       </div>
     </div>
   `).join('');
@@ -130,6 +131,27 @@ async function init() {
       : '';
 
     dashboardContainer.innerHTML = payoutBanner + listingsSectionHTML(listings) + bookingsSectionHTML(bookings);
+
+    document.querySelectorAll('.booking-delete-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Delete this booking? This cannot be undone.')) return;
+        const id = btn.getAttribute('data-booking-id');
+        btn.disabled = true;
+        try {
+          const res = await secureFetch(`/api/bookings/${id}`, { method: 'DELETE' });
+          const data = await res.json();
+          if (!res.ok) {
+            alert(data.error || 'Could not delete this booking.');
+            btn.disabled = false;
+            return;
+          }
+          document.querySelector(`.booking-received-item[data-booking-id="${id}"]`).remove();
+        } catch (err) {
+          alert('Could not delete this booking.');
+          btn.disabled = false;
+        }
+      });
+    });
   } catch (err) {
     console.error(err);
     dashboardContainer.innerHTML = '<p class="state-message">Something went wrong loading your dashboard.</p>';

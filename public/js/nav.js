@@ -77,43 +77,50 @@ function renderNav(user) {
   if (!nav || !header) return;
 
   if (!user) {
+    // Same nav-item markup style logged-in users get (not the old plain
+    // <a> tags), so the mobile drawer CSS — which only shows #site-nav
+    // once the hamburger's .open class is toggled — has something
+    // consistent to work with for guests too.
     nav.innerHTML = `
       <div class="nav-links">
-        <a href="/index.html">Browse</a>
-        <a href="/login.html">Log in</a>
-        <a href="/signup.html" class="cta">Sign up</a>
+        ${navLink('/index.html', 'browse', 'Browse')}
+        ${navLink('/login.html', 'login', 'Log in')}
+        ${navLink('/signup.html', 'signup', 'Sign up', 'cta')}
       </div>
     `;
-    return;
+  } else {
+    // One flat list, authored in exactly the order the mobile drawer wants
+    // top-to-bottom (profile header, then Browse, then everything else, then
+    // Log out last). Desktop rearranges this same markup visually with CSS
+    // `order`, rather than needing a second, separate structure.
+    const items = [navLink('/index.html', 'browse', 'Browse')];
+    if (user.role === 'student') items.push(navLink('/mybookings.html', 'bookings', 'My Bookings'));
+    if (user.role === 'student') items.push(navLink('/favorites.html', 'favorites', 'Favorites'));
+    if (user.role === 'hoster') items.push(navLink('/post.html', 'post', 'Post a listing'));
+    if (user.role === 'hoster') items.push(navLink('/dashboard.html', 'dashboard', 'Dashboard'));
+    if (user.role === 'hoster') items.push(navLink('/payout-settings.html', 'payout', 'Payout Settings'));
+    if (user.role === 'admin') items.push(navLink('/admin.html', 'admin', 'Admin'));
+    items.push(navLink('/account.html', 'account', 'Account'));
+
+    nav.innerHTML = `
+      <div class="nav-profile-header">
+        <span class="who">${navEscapeHTML(user.name)}</span>
+        <span class="badge">${user.role}</span>
+      </div>
+      ${items.join('')}
+      <button type="button" class="nav-item nav-logout" id="logout-btn" data-tooltip="Log out">
+        <span class="nav-icon">${NAV_ICONS.logout}</span><span class="nav-link-label">Log out</span>
+      </button>
+    `;
+
+    document.getElementById('logout-btn').addEventListener('click', () => doLogout());
+    loadChatWidget(user);
+    startInactivityWatch();
   }
 
-  // One flat list, authored in exactly the order the mobile drawer wants
-  // top-to-bottom (profile header, then Browse, then everything else, then
-  // Log out last). Desktop rearranges this same markup visually with CSS
-  // `order`, rather than needing a second, separate structure.
-  const items = [navLink('/index.html', 'browse', 'Browse')];
-  if (user.role === 'student') items.push(navLink('/mybookings.html', 'bookings', 'My Bookings'));
-  if (user.role === 'student') items.push(navLink('/favorites.html', 'favorites', 'Favorites'));
-  if (user.role === 'hoster') items.push(navLink('/post.html', 'post', 'Post a listing'));
-  if (user.role === 'hoster') items.push(navLink('/dashboard.html', 'dashboard', 'Dashboard'));
-  if (user.role === 'hoster') items.push(navLink('/payout-settings.html', 'payout', 'Payout Settings'));
-  if (user.role === 'admin') items.push(navLink('/admin.html', 'admin', 'Admin'));
-  items.push(navLink('/account.html', 'account', 'Account'));
-
-  nav.innerHTML = `
-    <div class="nav-profile-header">
-      <span class="who">${navEscapeHTML(user.name)}</span>
-      <span class="badge">${user.role}</span>
-    </div>
-    ${items.join('')}
-    <button type="button" class="nav-item nav-logout" id="logout-btn" data-tooltip="Log out">
-      <span class="nav-icon">${NAV_ICONS.logout}</span><span class="nav-link-label">Log out</span>
-    </button>
-  `;
-
-  document.getElementById('logout-btn').addEventListener('click', () => doLogout());
-
-  // Hamburger toggle + backdrop for small screens, only build them once
+  // Hamburger toggle + backdrop for small screens, built once regardless of
+  // login state, a guest needs a way to open the drawer and see Log in /
+  // Sign up just as much as a logged-in user needs it for their own links.
   if (!header.querySelector('.nav-toggle')) {
     const toggle = document.createElement('button');
     toggle.className = 'nav-toggle';
@@ -143,12 +150,9 @@ function renderNav(user) {
     backdrop.addEventListener('click', closeDrawer);
 
     nav.addEventListener('click', (e) => {
-      if (e.target.closest('.nav-item')) closeDrawer();
+      if (e.target.closest('.nav-item') || e.target.closest('.nav-links a')) closeDrawer();
     });
   }
-
-  loadChatWidget(user);
-  startInactivityWatch();
 }
 
 // Logs the user out automatically after 5 minutes with no interaction
