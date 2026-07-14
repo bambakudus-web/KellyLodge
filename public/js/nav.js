@@ -85,7 +85,7 @@ function renderNav(user) {
       <div class="nav-links">
         ${navLink('/index.html', 'browse', 'Browse')}
         ${navLink('/login.html', 'login', 'Log in')}
-        ${navLink('/signup.html', 'signup', 'Sign up', 'cta')}
+        ${navLink('/signup.html', 'signup', 'Sign up')}
       </div>
     `;
   } else {

@@ -1,5 +1,45 @@
-// landing.js: the landing page's key-tag entrance animation and a subtle
-// post-landing mouse tilt on desktop.
+// landing.js: the landing page's key-tag entrance animation, a subtle
+// post-landing mouse tilt on desktop, and the hero background carousel.
+
+// --- Hero image carousel: crossfades between .hero-slide layers, dots are
+// clickable and also stay in sync with autoplay. ---
+const heroSlides = document.querySelectorAll('.hero-slide');
+const heroDots = document.querySelectorAll('.hero-dot');
+const HERO_SLIDE_INTERVAL_MS = 5000;
+let heroSlideIndex = 0;
+let heroTimer = null;
+
+function showHeroSlide(index) {
+  heroSlideIndex = (index + heroSlides.length) % heroSlides.length;
+  heroSlides.forEach((slide, i) => slide.classList.toggle('is-active', i === heroSlideIndex));
+  heroDots.forEach((dot, i) => dot.classList.toggle('is-active', i === heroSlideIndex));
+}
+
+function startHeroAutoplay() {
+  stopHeroAutoplay();
+  heroTimer = setInterval(() => showHeroSlide(heroSlideIndex + 1), HERO_SLIDE_INTERVAL_MS);
+}
+
+function stopHeroAutoplay() {
+  if (heroTimer) clearInterval(heroTimer);
+}
+
+if (heroSlides.length > 1) {
+  heroDots.forEach((dot) => {
+    dot.addEventListener('click', () => {
+      showHeroSlide(Number(dot.getAttribute('data-slide')));
+      startHeroAutoplay(); // reset the timer so it doesn't jump right after a manual click
+    });
+  });
+
+  startHeroAutoplay();
+
+  // Pause while the tab isn't visible, no point crossfading off-screen.
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) stopHeroAutoplay();
+    else startHeroAutoplay();
+  });
+}
 
 const keyBoard = document.querySelector('.key-board');
 
