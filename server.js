@@ -59,7 +59,12 @@ const sessionMiddleware = session({
   // shared computer even if the browser tab gets closed and reopened later.
   rolling: true,
   cookie: {
-    maxAge: 1000 * 60 * 5, // 5 minutes
+    // 20 minutes, not 5: a real Paystack checkout (card entry, or waiting
+    // on a mobile money OTP) can easily run past 5 minutes, and there's no
+    // way for nav.js's heartbeat to keep the session alive while the
+    // browser is off on Paystack's own domain. Long enough to survive a
+    // normal checkout, still short enough to protect a shared computer.
+    maxAge: 1000 * 60 * 20,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
   },

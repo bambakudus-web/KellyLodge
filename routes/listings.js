@@ -116,18 +116,32 @@ router.get('/areas', async (req, res) => {
   }
 });
 
-// GET /api/listings/:id — a single listing's full details: rooms, photo gallery, rating
+// GET /api/listings/:id — a single listing's full details: rooms, photo
+// gallery, rating. Used by both the public listing page (anonymous
+// visitors should only ever see 'active' listings) and the hoster's own
+// edit-listing page (which needs to load a listing regardless of status —
+// otherwise a listing an admin marked 'removed' would become permanently
+// unviewable and unfixable by its own owner).
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const [rows] = await pool.query(
       `SELECT listings.*, users.name AS owner_name, users.phone AS owner_phone, ${REVIEWS_SUBQUERY}
        FROM listings JOIN users ON listings.owner_id = users.id
-       WHERE listings.id = ? AND listings.status = 'active'`,
+       WHERE listings.id = ?`,
       [id]
     );
 
     if (rows.length === 0) {
+      return res.status(404).json({ error: 'Listing not found.' });
+    }
+
+    const listing = rows[0];
+    const requester = req.session.user;
+    const isOwner = requester && requester.id === listing.owner_id;
+    const isAdmin = requester && requester.role === 'admin';
+
+    if (listing.status !== 'active' && !isOwner && !isAdmin) {
       return res.status(404).json({ error: 'Listing not found.' });
     }
 
@@ -142,17 +156,19 @@ router.get('/:id', async (req, res) => {
       [id]
     );
 
-    const listing = rows[0];
     listing.room_types = roomTypes;
     listing.photos = photos;
 
     res.json(listing);
 
-    // Fire-and-forget view counter — never let a slow/failed increment
-    // block or break the response the visitor already received.
-    pool.query('UPDATE listings SET views = views + 1 WHERE id = ?', [id]).catch((err) => {
-      console.error('Could not increment view count:', err);
-    });
+    // Fire-and-forget view counter — only for genuine public views of an
+    // active listing, an owner reloading their own edit page (or an admin
+    // reviewing a removed one) shouldn't inflate the view count.
+    if (listing.status === 'active') {
+      pool.query('UPDATE listings SET views = views + 1 WHERE id = ?', [id]).catch((err) => {
+        console.error('Could not increment view count:', err);
+      });
+    }
   } catch (err) {
     console.error('Error fetching listing:', err);
     res.status(500).json({ error: 'Could not fetch listing.' });

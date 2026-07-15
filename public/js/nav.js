@@ -160,7 +160,7 @@ function renderNav(user) {
 // touches all count as activity). Paired with a matching server-side
 // rolling session timeout (see server.js), so this isn't just a client-side
 // suggestion, the session itself actually expires on the same schedule.
-const INACTIVITY_LIMIT_MS = 5 * 60 * 1000;
+const INACTIVITY_LIMIT_MS = 20 * 60 * 1000;
 const HEARTBEAT_INTERVAL_MS = 60 * 1000; // keep the server session's rolling window alive
 let inactivityWatchStarted = false;
 
