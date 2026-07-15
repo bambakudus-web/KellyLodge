@@ -182,6 +182,13 @@ a { color: inherit; text-decoration: none; }
 }
 .btn.btn-ghost-light:hover { background: rgba(255,255,255,0.2); }
 
+.btn.btn-ghost-gold {
+  background: rgba(192, 138, 33, 0.22);
+  color: var(--brass-light);
+  border: 1px solid rgba(226, 180, 91, 0.55);
+}
+.btn.btn-ghost-gold:hover { background: rgba(192, 138, 33, 0.34); border-color: var(--brass-light); }
+
 .btn-danger { background: var(--danger); color: white; }
 .btn-danger:hover { background: #8a2e1e; }
 
@@ -338,6 +345,16 @@ select:focus, input:focus, textarea:focus, button:focus {
   outline: 2px solid var(--brass);
   outline-offset: 1px;
   border-color: var(--brass);
+}
+
+/* iOS Safari auto-zooms the whole page in when a focused input's font-size
+   is under 16px, this stylesheet has several inputs smaller than that
+   (0.95rem, and some smaller still in tighter spots like the chat widget).
+   Forcing 16px specifically on mobile-width screens, where Safari's zoom
+   quirk actually applies, avoids that jarring zoom without needing to
+   touch every individual input rule's sizing above. */
+@media (max-width: 768px) {
+  select, input, textarea { font-size: 16px !important; }
 }
 
 .filter-bar .filter-actions {
@@ -2100,6 +2117,7 @@ select, input, textarea {
 .msg-bubble-row.theirs { justify-content: flex-start; }
 
 .msg-bubble {
+  position: relative;
   max-width: 72%;
   padding: 0.55rem 0.85rem;
   border-radius: 14px;
@@ -2108,8 +2126,34 @@ select, input, textarea {
 }
 .msg-bubble-row.mine .msg-bubble { background: var(--brass); color: white; border-bottom-right-radius: 4px; }
 .msg-bubble-row.theirs .msg-bubble { background: var(--paper-deep); color: var(--ink); border-bottom-left-radius: 4px; }
-.msg-bubble p { margin: 0; word-break: break-word; }
+.msg-bubble p { margin: 0; word-break: break-word; padding-right: 0.9rem; }
 .msg-time { display: block; font-size: 0.65rem; opacity: 0.7; margin-top: 0.25rem; text-align: right; }
+
+.msg-delete-btn {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: var(--night);
+  color: white;
+  font-size: 0.85rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+.msg-bubble:hover .msg-delete-btn { opacity: 1; }
+.msg-delete-btn:hover { background: var(--danger); }
+/* Touch devices can't hover, keep it tappable without needing one */
+@media (hover: none) {
+  .msg-delete-btn { opacity: 0.55; }
+}
 
 .typing-indicator {
   height: 1.2rem;
@@ -2309,6 +2353,7 @@ select, input, textarea {
 .klw-msg-row.mine { justify-content: flex-end; }
 .klw-msg-row.theirs { justify-content: flex-start; }
 .klw-msg-bubble {
+  position: relative;
   max-width: 78%;
   padding: 0.45rem 0.7rem;
   border-radius: 12px;
@@ -2317,8 +2362,33 @@ select, input, textarea {
 }
 .klw-msg-row.mine .klw-msg-bubble { background: var(--brass); color: white; border-bottom-right-radius: 3px; }
 .klw-msg-row.theirs .klw-msg-bubble { background: var(--paper-deep); color: var(--ink); border-bottom-left-radius: 3px; }
-.klw-msg-bubble p { margin: 0; word-break: break-word; }
+.klw-msg-bubble p { margin: 0; word-break: break-word; padding-right: 0.7rem; }
 .klw-msg-time { display: block; font-size: 0.6rem; opacity: 0.7; margin-top: 0.2rem; text-align: right; }
+
+.klw-msg-delete {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  border: none;
+  background: var(--night);
+  color: white;
+  font-size: 0.72rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+.klw-msg-bubble:hover .klw-msg-delete { opacity: 1; }
+.klw-msg-delete:hover { background: var(--danger); }
+@media (hover: none) {
+  .klw-msg-delete { opacity: 0.55; }
+}
 
 .klw-typing {
   height: 1rem;

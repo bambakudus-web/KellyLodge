@@ -79,10 +79,11 @@ function messageBubbleHTML(msg) {
   const isMine = msg.sender_id === currentUser.id;
   const time = new Date(msg.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   return `
-    <div class="msg-bubble-row ${isMine ? 'mine' : 'theirs'}">
+    <div class="msg-bubble-row ${isMine ? 'mine' : 'theirs'}" data-message-id="${msg.id}">
       <div class="msg-bubble">
         <p>${escapeHTML(msg.body)}</p>
         <span class="msg-time">${time}</span>
+        ${isMine ? `<button type="button" class="msg-delete-btn" data-message-id="${msg.id}" aria-label="Delete message" title="Delete message">&times;</button>` : ''}
       </div>
     </div>
   `;
@@ -130,6 +131,16 @@ async function openConversation(conversationId) {
       ? messages.map(messageBubbleHTML).join('')
       : '<p class="state-message">Say hello, start the conversation.</p>';
     messagesEl.scrollTop = messagesEl.scrollHeight;
+
+    messagesEl.addEventListener('click', (e) => {
+      const delBtn = e.target.closest('.msg-delete-btn');
+      if (!delBtn) return;
+      if (!confirm('Delete this message?')) return;
+      const messageId = delBtn.getAttribute('data-message-id');
+      socket.emit('delete_message', { messageId }, (response) => {
+        if (response?.error) alert(response.error);
+      });
+    });
   } catch (err) {
     console.error(err);
     document.getElementById('thread-messages').innerHTML = '<p class="state-message">Could not load messages.</p>';
@@ -207,6 +218,18 @@ function setupSocket() {
   });
 
   socket.on('conversation_updated', () => {
+    refreshConversationList();
+  });
+
+  socket.on('message_deleted', ({ messageId, conversationId }) => {
+    if (conversationId === activeConversationId) {
+      const row = document.querySelector(`.msg-bubble-row[data-message-id="${messageId}"]`);
+      if (row) row.remove();
+      const messagesEl = document.getElementById('thread-messages');
+      if (messagesEl && !messagesEl.querySelector('.msg-bubble-row')) {
+        messagesEl.innerHTML = '<p class="state-message">Say hello, start the conversation.</p>';
+      }
+    }
     refreshConversationList();
   });
 

@@ -154,7 +154,7 @@ function roomsSectionHTML(listing, currentUser) {
       <div class="contact-box-inline">
         <span class="owner-name">${escapeHTML(listing.owner_name)}</span>
         <a href="tel:${listing.owner_phone}" class="btn btn-ghost-light btn-small">Call ${listing.owner_phone}</a>
-        ${!isOwner && currentUser.role === 'student' ? `<button class="btn btn-outline btn-small message-owner-btn" data-listing-id="${listing.id}">Message</button>` : ''}
+        ${!isOwner && currentUser.role === 'student' ? `<button class="btn btn-ghost-gold btn-small message-owner-btn" data-listing-id="${listing.id}">Message</button>` : ''}
       </div>
     </div>
   `;

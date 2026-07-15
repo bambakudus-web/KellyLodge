@@ -109,6 +109,37 @@ function initSocket(httpServer, sessionMiddleware) {
       }
     });
 
+    // Deleting only ever removes the row for real (not a "hide for me"
+    // soft-delete), and only the person who sent it can do it — checked
+    // server-side, a client-only check would let anyone fake the request.
+    socket.on('delete_message', async ({ messageId }, callback) => {
+      try {
+        const [[message]] = await pool.query(
+          'SELECT conversation_id, sender_id FROM messages WHERE id = ?',
+          [messageId]
+        );
+        if (!message) return callback?.({ error: 'Message not found.' });
+        if (message.sender_id !== socket.user.id) {
+          return callback?.({ error: 'You can only delete your own messages.' });
+        }
+
+        await pool.query('DELETE FROM messages WHERE id = ?', [messageId]);
+
+        // Broadcast to everyone in the thread (including the sender's own
+        // other open tabs), so the bubble disappears live on both sides,
+        // not just for whoever clicked delete.
+        io.to(`conversation:${message.conversation_id}`).emit('message_deleted', {
+          messageId: Number(messageId),
+          conversationId: message.conversation_id,
+        });
+
+        callback?.({ success: true });
+      } catch (err) {
+        console.error('Error deleting message:', err);
+        callback?.({ error: 'Could not delete message. Please try again.' });
+      }
+    });
+
     socket.on('mark_read', async (conversationId) => {
       try {
         const [[conversation]] = await pool.query(

@@ -139,6 +139,20 @@ window.KellyLodgeChatWidget = (function () {
 
     socket.on('conversation_updated', () => refreshConversations());
 
+    socket.on('message_deleted', ({ messageId, conversationId }) => {
+      if (conversationId === activeConversationId) {
+        const row = document.querySelector(`.klw-msg-row[data-message-id="${messageId}"]`);
+        if (row) row.remove();
+        const messagesEl = document.getElementById('klw-thread-messages');
+        if (messagesEl && !messagesEl.querySelector('.klw-msg-row')) {
+          messagesEl.innerHTML = '<p class="klw-empty">Say hello, start the conversation.</p>';
+        }
+      }
+      // The list's "last message" preview may have just been the message
+      // that got deleted, refresh it so the preview text stays accurate.
+      refreshConversations();
+    });
+
     socket.on('typing', ({ conversationId }) => {
       if (conversationId !== activeConversationId) return;
       const indicator = document.getElementById('klw-typing');
@@ -269,10 +283,11 @@ window.KellyLodgeChatWidget = (function () {
     const isMine = msg.sender_id === currentUser.id;
     const time = new Date(msg.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     return `
-      <div class="klw-msg-row ${isMine ? 'mine' : 'theirs'}">
+      <div class="klw-msg-row ${isMine ? 'mine' : 'theirs'}" data-message-id="${msg.id}">
         <div class="klw-msg-bubble">
           <p>${escHTML(msg.body)}</p>
           <span class="klw-msg-time">${time}</span>
+          ${isMine ? `<button type="button" class="klw-msg-delete" data-message-id="${msg.id}" aria-label="Delete message" title="Delete message">&times;</button>` : ''}
         </div>
       </div>
     `;
@@ -306,6 +321,18 @@ window.KellyLodgeChatWidget = (function () {
         ? messages.map(messageBubbleHTML).join('')
         : '<p class="klw-empty">Say hello, start the conversation.</p>';
       messagesEl.scrollTop = messagesEl.scrollHeight;
+
+      // Delegated so it keeps working for messages appended live later too,
+      // not just the ones rendered in this initial batch.
+      messagesEl.addEventListener('click', (e) => {
+        const delBtn = e.target.closest('.klw-msg-delete');
+        if (!delBtn) return;
+        if (!confirm('Delete this message?')) return;
+        const messageId = delBtn.getAttribute('data-message-id');
+        socket?.emit('delete_message', { messageId }, (response) => {
+          if (response?.error) alert(response.error);
+        });
+      });
     } catch (err) {
       console.error(err);
     }
