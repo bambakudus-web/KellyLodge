@@ -2032,6 +2032,7 @@ select, input, textarea {
 }
 
 .conversation-item {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -2041,12 +2042,34 @@ select, input, textarea {
   background: none;
   border: none;
   border-bottom: 1px solid var(--line);
-  padding: 0.9rem 1rem;
+  padding: 0.9rem 2.2rem 0.9rem 1rem;
   cursor: pointer;
   font-family: inherit;
 }
 .conversation-item:hover { background: var(--paper-deep); }
 .conversation-item.active { background: white; border-left: 3px solid var(--brass); }
+.ci-delete {
+  position: absolute;
+  top: 50%;
+  right: 0.7rem;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 1.1rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.conversation-item:hover .ci-delete { opacity: 1; }
+.ci-delete:hover { background: var(--danger); color: white; }
 
 .ci-main { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
 .ci-name { font-weight: 700; font-family: var(--font-display); font-size: 0.95rem; }
@@ -2145,15 +2168,11 @@ select, input, textarea {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  opacity: 0;
+  opacity: 0.55;
   transition: opacity 0.15s ease, background 0.15s ease;
 }
 .msg-bubble:hover .msg-delete-btn { opacity: 1; }
 .msg-delete-btn:hover { background: var(--danger); }
-/* Touch devices can't hover, keep it tappable without needing one */
-@media (hover: none) {
-  .msg-delete-btn { opacity: 0.55; }
-}
 
 .typing-indicator {
   height: 1.2rem;
@@ -2306,6 +2325,7 @@ select, input, textarea {
 
 .klw-conv-list { overflow-y: auto; flex: 1; }
 .klw-conv-item {
+  position: relative;
   display: flex;
   justify-content: space-between;
   gap: 0.5rem;
@@ -2314,11 +2334,33 @@ select, input, textarea {
   background: none;
   border: none;
   border-bottom: 1px solid var(--line);
-  padding: 0.75rem 1rem;
+  padding: 0.75rem 2rem 0.75rem 1rem;
   cursor: pointer;
   font-family: inherit;
 }
 .klw-conv-item:hover { background: var(--paper); }
+.klw-conv-delete {
+  position: absolute;
+  top: 50%;
+  right: 0.6rem;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 1rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.klw-conv-item:hover .klw-conv-delete { opacity: 1; }
+.klw-conv-delete:hover { background: var(--danger); color: white; }
 .klw-conv-main { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
 .klw-conv-name { font-weight: 700; font-size: 0.85rem; }
 .klw-conv-listing { font-size: 0.7rem; color: var(--brass-dark); }
@@ -2381,14 +2423,11 @@ select, input, textarea {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  opacity: 0;
+  opacity: 0.55;
   transition: opacity 0.15s ease, background 0.15s ease;
 }
 .klw-msg-bubble:hover .klw-msg-delete { opacity: 1; }
 .klw-msg-delete:hover { background: var(--danger); }
-@media (hover: none) {
-  .klw-msg-delete { opacity: 0.55; }
-}
 
 .klw-typing {
   height: 1rem;

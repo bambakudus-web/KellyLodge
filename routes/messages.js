@@ -134,4 +134,34 @@ router.get('/unread-count', requireLogin, async (req, res) => {
   }
 });
 
+// DELETE /api/messages/conversations/:id — either participant can delete
+// the whole thread. Messages cascade-delete with it at the DB level
+// (see database/add_messaging.js's FOREIGN KEY ... ON DELETE CASCADE), so
+// this is one clean operation, not a loop of individual message deletes.
+router.delete('/conversations/:id', requireLogin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.session.user.id;
+
+    const [[conversation]] = await pool.query(
+      'SELECT student_id, hoster_id FROM conversations WHERE id = ?',
+      [id]
+    );
+
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found.' });
+    }
+    if (conversation.student_id !== userId && conversation.hoster_id !== userId) {
+      return res.status(403).json({ error: 'Not your conversation.' });
+    }
+
+    await pool.query('DELETE FROM conversations WHERE id = ?', [id]);
+
+    res.json({ message: 'Conversation deleted.' });
+  } catch (err) {
+    console.error('Error deleting conversation:', err);
+    res.status(500).json({ error: 'Could not delete conversation.' });
+  }
+});
+
 module.exports = router;

@@ -176,7 +176,7 @@ window.KellyLodgeChatWidget = (function () {
 
   function conversationItemHTML(conv) {
     return `
-      <button class="klw-conv-item" data-id="${conv.id}">
+      <div class="klw-conv-item" data-id="${conv.id}">
         <div class="klw-conv-main">
           <span class="klw-conv-name">${escHTML(conv.other_user_name)}</span>
           <span class="klw-conv-listing">${escHTML(conv.listing_title)}</span>
@@ -186,7 +186,8 @@ window.KellyLodgeChatWidget = (function () {
           <span class="klw-conv-time">${timeAgo(conv.last_message_at)}</span>
           ${conv.unread_count > 0 ? `<span class="klw-conv-unread">${conv.unread_count}</span>` : ''}
         </div>
-      </button>
+        <button type="button" class="klw-conv-delete" data-id="${conv.id}" aria-label="Delete conversation" title="Delete conversation">&times;</button>
+      </div>
     `;
   }
 
@@ -205,8 +206,37 @@ window.KellyLodgeChatWidget = (function () {
       `;
     } else {
       body.innerHTML = `${newMessageButton}<div class="klw-conv-list">${conversations.map(conversationItemHTML).join('')}</div>`;
-      body.querySelectorAll('.klw-conv-item').forEach((btn) => {
-        btn.addEventListener('click', () => openThread(Number(btn.dataset.id)));
+      body.querySelectorAll('.klw-conv-item').forEach((item) => {
+        item.addEventListener('click', (e) => {
+          if (e.target.closest('.klw-conv-delete')) return;
+          openThread(Number(item.dataset.id));
+        });
+      });
+      body.querySelectorAll('.klw-conv-delete').forEach((delBtn) => {
+        delBtn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          if (!confirm('Delete this entire conversation? This removes all messages in it for both of you.')) return;
+          const conversationId = delBtn.getAttribute('data-id');
+          try {
+            const token = await getCsrfTokenLocal();
+            const res = await fetch(`/api/messages/conversations/${conversationId}`, {
+              method: 'DELETE',
+              credentials: 'include',
+              headers: { 'x-csrf-token': token },
+            });
+            const data = await res.json();
+            if (!res.ok) {
+              alert(data.error || 'Could not delete conversation.');
+              return;
+            }
+            conversations = conversations.filter((c) => c.id !== Number(conversationId));
+            renderList();
+            updateBadge();
+          } catch (err) {
+            console.error(err);
+            alert('Could not delete conversation.');
+          }
+        });
       });
     }
 

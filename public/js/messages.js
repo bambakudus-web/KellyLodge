@@ -45,7 +45,7 @@ function timeAgo(isoString) {
 function conversationItemHTML(conv) {
   const isActive = conv.id === activeConversationId;
   return `
-    <button class="conversation-item ${isActive ? 'active' : ''}" data-id="${conv.id}">
+    <div class="conversation-item ${isActive ? 'active' : ''}" data-id="${conv.id}">
       <div class="ci-main">
         <span class="ci-name">${escapeHTML(conv.other_user_name)}</span>
         <span class="ci-listing">${escapeHTML(conv.listing_title)}</span>
@@ -55,7 +55,8 @@ function conversationItemHTML(conv) {
         <span class="ci-time">${timeAgo(conv.last_message_at)}</span>
         ${conv.unread_count > 0 ? `<span class="ci-unread">${conv.unread_count}</span>` : ''}
       </div>
-    </button>
+      <button type="button" class="ci-delete" data-id="${conv.id}" aria-label="Delete conversation" title="Delete conversation">&times;</button>
+    </div>
   `;
 }
 
@@ -70,8 +71,38 @@ function renderConversationList() {
 
   listEl.innerHTML = conversations.map(conversationItemHTML).join('');
 
-  listEl.querySelectorAll('.conversation-item').forEach((btn) => {
-    btn.addEventListener('click', () => openConversation(Number(btn.dataset.id)));
+  listEl.querySelectorAll('.conversation-item').forEach((item) => {
+    item.addEventListener('click', (e) => {
+      if (e.target.closest('.ci-delete')) return;
+      openConversation(Number(item.dataset.id));
+    });
+  });
+
+  listEl.querySelectorAll('.ci-delete').forEach((delBtn) => {
+    delBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (!confirm('Delete this entire conversation? This removes all messages in it for both of you.')) return;
+      const conversationId = delBtn.getAttribute('data-id');
+      try {
+        const res = await secureFetch(`/api/messages/conversations/${conversationId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || 'Could not delete conversation.');
+          return;
+        }
+        conversations = conversations.filter((c) => c.id !== Number(conversationId));
+        if (activeConversationId === Number(conversationId)) {
+          activeConversationId = null;
+          document.getElementById('messages-shell')?.classList.remove('thread-open');
+          const threadPanel = document.getElementById('thread-panel');
+          if (threadPanel) threadPanel.innerHTML = '<div class="thread-empty">Select a conversation to start chatting.</div>';
+        }
+        renderConversationList();
+      } catch (err) {
+        console.error(err);
+        alert('Could not delete conversation.');
+      }
+    });
   });
 }
 
