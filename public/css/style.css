@@ -866,21 +866,48 @@ select:focus, input:focus, textarea:focus, button:focus {
   color: white;
   border-radius: var(--radius-lg);
   padding: 2.4rem 2rem;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: var(--shadow);
 }
-.role-card:hover { transform: translateY(-3px); }
+.role-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
 
-.role-card.gold { background: var(--brass); color: #2A1D06; }
+.role-card.gold {
+  background: linear-gradient(155deg, var(--brass-light) 0%, var(--brass) 45%, var(--brass-dark) 130%);
+  color: #2A1D06;
+}
+
+.role-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.2rem;
+}
+.role-icon svg { width: 24px; height: 24px; }
+.role-card:not(.gold) .role-icon { background: rgba(255,255,255,0.1); color: var(--brass-light); }
+.role-card.gold .role-icon { background: rgba(42, 29, 6, 0.14); color: #2A1D06; }
 
 .role-card .eyebrow { display: block; margin-bottom: 0.5rem; }
-.role-card.gold .eyebrow { color: var(--night); opacity: 0.6; }
+.role-card.gold .eyebrow { color: #2A1D06; opacity: 0.65; }
 .role-card:not(.gold) .eyebrow { color: var(--brass-light); }
 
 .role-card h3 { color: inherit; font-size: 1.5rem; }
 .role-card p { color: inherit; opacity: 0.82; font-size: 0.93rem; margin-bottom: 1.5rem; }
 
-.role-card .btn { background: white; color: var(--night); width: 100%; }
+.role-card .btn {
+  background: white;
+  color: var(--night);
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
 .role-card.gold .btn { background: var(--night); color: white; }
+.role-card .btn-arrow { display: inline-block; transition: transform 0.2s ease; }
+.role-card .btn:hover .btn-arrow { transform: translateX(4px); }
 
 @media (max-width: 600px) {
   .landing-hero h1 { font-size: 2.1rem; }
