@@ -99,7 +99,7 @@ function attachFavoriteHandler(listingId) {
       btn.title = nowFavorited ? 'Remove from favorites' : 'Save to favorites';
     } catch (err) {
       console.error(err);
-      alert('Could not update favorites. Please try again.');
+      showToast('Could not update favorites. Please try again.');
     } finally {
       btn.disabled = false;
     }
@@ -166,7 +166,7 @@ function attachMessageOwnerHandler() {
 
   btn.addEventListener('click', () => {
     if (!window.KellyLodgeChatWidget) {
-      alert('Chat is still loading, please try again in a moment.');
+      showToast('Chat is still loading, please try again in a moment.');
       return;
     }
     window.KellyLodgeChatWidget.openConversationFor(btn.dataset.listingId);
@@ -378,12 +378,12 @@ function renderListing(listing, currentUser, isFavorited) {
         const res = await secureFetch(`/api/listings/${listing.id}`, { method: 'DELETE' });
         const data = await res.json();
         if (!res.ok) {
-          alert(data.error || 'Could not remove listing.');
+          showToast(data.error || 'Could not remove listing.');
           return;
         }
         window.location.href = '/index.html';
       } catch (err) {
-        alert('Could not reach the server. Please try again.');
+        showToast('Could not reach the server. Please try again.');
       }
     });
   }

@@ -69,7 +69,7 @@ function renderFavorites(favorites) {
         if (!res.ok) throw new Error('Remove failed');
         document.querySelector(`.booking-item[data-listing-id="${listingId}"]`).remove();
       } catch (err) {
-        alert('Could not remove this favorite.');
+        showToast('Could not remove this favorite.');
       }
     });
   });

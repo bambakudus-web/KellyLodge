@@ -83,12 +83,12 @@ function renderBookings(bookings) {
         const res = await secureFetch(`/api/bookings/${id}`, { method: 'DELETE' });
         const data = await res.json();
         if (!res.ok) {
-          alert(data.error || 'Could not cancel this booking.');
+          showToast(data.error || 'Could not cancel this booking.');
           return;
         }
         document.querySelector(`.booking-item[data-booking-id="${id}"]`).remove();
       } catch (err) {
-        alert('Could not cancel this booking.');
+        showToast('Could not cancel this booking.');
       }
     });
   });
@@ -108,7 +108,7 @@ function renderBookings(bookings) {
         const data = await res.json();
 
         if (!res.ok) {
-          alert(data.error || 'Could not start the payment.');
+          showToast(data.error || 'Could not start the payment.');
           btn.disabled = false;
           btn.textContent = 'Pay now';
           return;
@@ -117,7 +117,7 @@ function renderBookings(bookings) {
         window.location.href = data.authorization_url;
       } catch (err) {
         console.error(err);
-        alert('Could not reach the payment server. Please try again.');
+        showToast('Could not reach the payment server. Please try again.');
         btn.disabled = false;
         btn.textContent = 'Pay now';
       }

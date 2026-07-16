@@ -1,5 +1,50 @@
 // nav.js: shared across all pages. Checks session state and renders the nav accordingly.
 
+// --- Toast notifications ---
+// A quiet, self-dismissing message in the corner instead of a browser
+// alert() — alert() blocks the whole page and looks like the site
+// crashed, which is a bad look for an ordinary "that didn't work, try
+// again" message. Defined here (not its own file) because nav.js is the
+// one script every single page loads first, so window.showToast is
+// already available by the time any page-specific script needs it.
+function ensureToastContainer() {
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    container.setAttribute('aria-live', 'polite');
+    document.body.appendChild(container);
+  }
+  return container;
+}
+
+function showToast(message, type = 'error', durationMs = 4500) {
+  const container = ensureToastContainer();
+
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+
+  // Two rAFs, not one — the element needs to actually paint at its
+  // pre-transition state first, otherwise the browser can coalesce the
+  // class addition into the same frame as creation and the slide-in
+  // transition never plays, it just appears already in place.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => toast.classList.add('is-visible'));
+  });
+
+  const dismiss = () => {
+    toast.classList.remove('is-visible');
+    toast.addEventListener('transitionend', () => toast.remove(), { once: true });
+    // Fallback in case transitionend never fires (e.g. reduced-motion setups)
+    setTimeout(() => toast.remove(), 400);
+  };
+
+  toast.addEventListener('click', dismiss);
+  setTimeout(dismiss, durationMs);
+}
+
 // Self-contained escape helper, nav.js runs on pages that don't load area.js
 // (landing, login, signup), so it can't rely on that file's escapeHTML.
 function navEscapeHTML(str) {

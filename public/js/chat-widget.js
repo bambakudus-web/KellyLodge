@@ -226,7 +226,7 @@ window.KellyLodgeChatWidget = (function () {
             });
             const data = await res.json();
             if (!res.ok) {
-              alert(data.error || 'Could not delete conversation.');
+              showToast(data.error || 'Could not delete conversation.');
               return;
             }
             conversations = conversations.filter((c) => c.id !== Number(conversationId));
@@ -234,7 +234,7 @@ window.KellyLodgeChatWidget = (function () {
             updateBadge();
           } catch (err) {
             console.error(err);
-            alert('Could not delete conversation.');
+            showToast('Could not delete conversation.');
           }
         });
       });
@@ -360,7 +360,7 @@ window.KellyLodgeChatWidget = (function () {
         if (!confirm('Delete this message?')) return;
         const messageId = delBtn.getAttribute('data-message-id');
         socket?.emit('delete_message', { messageId }, (response) => {
-          if (response?.error) alert(response.error);
+          if (response?.error) showToast(response.error);
         });
       });
     } catch (err) {
@@ -383,7 +383,7 @@ window.KellyLodgeChatWidget = (function () {
       if (!body) return;
       input.value = '';
       socket?.emit('send_message', { conversationId, body }, (response) => {
-        if (response?.error) alert(response.error);
+        if (response?.error) showToast(response.error);
       });
     });
 
@@ -493,7 +493,7 @@ window.KellyLodgeChatWidget = (function () {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || 'Could not start a conversation.');
+        showToast(data.error || 'Could not start a conversation.');
         closePanel();
         return;
       }

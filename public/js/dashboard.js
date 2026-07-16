@@ -142,13 +142,13 @@ async function init() {
           const res = await secureFetch(`/api/bookings/${id}`, { method: 'DELETE' });
           const data = await res.json();
           if (!res.ok) {
-            alert(data.error || 'Could not delete this booking.');
+            showToast(data.error || 'Could not delete this booking.');
             btn.disabled = false;
             return;
           }
           document.querySelector(`.booking-received-item[data-booking-id="${id}"]`).remove();
         } catch (err) {
-          alert('Could not delete this booking.');
+          showToast('Could not delete this booking.');
           btn.disabled = false;
         }
       });

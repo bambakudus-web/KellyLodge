@@ -191,7 +191,7 @@ function attachListingActions(user) {
         });
         loadTabContent(user);
       } catch (err) {
-        alert(err.message);
+        showToast(err.message);
       }
     });
   });
@@ -215,7 +215,7 @@ function attachUserActions(user) {
         await fetchJSON(`/api/admin/users/${btn.dataset.id}`, { method: 'DELETE' });
         loadTabContent(user);
       } catch (err) {
-        alert(err.message);
+        showToast(err.message);
       }
     });
   });
@@ -236,7 +236,7 @@ function attachUserActions(user) {
         });
         loadTabContent(user);
       } catch (err) {
-        alert(err.message);
+        showToast(err.message);
         select.value = originalValue;
       }
     });

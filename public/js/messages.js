@@ -87,7 +87,7 @@ function renderConversationList() {
         const res = await secureFetch(`/api/messages/conversations/${conversationId}`, { method: 'DELETE' });
         const data = await res.json();
         if (!res.ok) {
-          alert(data.error || 'Could not delete conversation.');
+          showToast(data.error || 'Could not delete conversation.');
           return;
         }
         conversations = conversations.filter((c) => c.id !== Number(conversationId));
@@ -100,7 +100,7 @@ function renderConversationList() {
         renderConversationList();
       } catch (err) {
         console.error(err);
-        alert('Could not delete conversation.');
+        showToast('Could not delete conversation.');
       }
     });
   });
@@ -169,7 +169,7 @@ async function openConversation(conversationId) {
       if (!confirm('Delete this message?')) return;
       const messageId = delBtn.getAttribute('data-message-id');
       socket.emit('delete_message', { messageId }, (response) => {
-        if (response?.error) alert(response.error);
+        if (response?.error) showToast(response.error);
       });
     });
   } catch (err) {
@@ -194,7 +194,7 @@ async function openConversation(conversationId) {
 
     input.value = '';
     socket.emit('send_message', { conversationId, body }, (response) => {
-      if (response?.error) alert(response.error);
+      if (response?.error) showToast(response.error);
     });
   });
 
