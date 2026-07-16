@@ -123,11 +123,12 @@ router.get('/mine', requireRole('student'), async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT bookings.id, bookings.created_at, bookings.payment_status, bookings.payment_deadline, bookings.paid_at, bookings.paystack_reference,
-              room_types.room_type, room_types.price,
+              room_types.room_type, room_types.price, rooms.room_number,
               listings.id AS listing_id, listings.title, listings.area, listings.image_url,
               users.name AS owner_name, users.phone AS owner_phone
        FROM bookings
        JOIN room_types ON bookings.room_type_id = room_types.id
+       LEFT JOIN rooms ON bookings.room_id = rooms.id
        JOIN listings ON bookings.listing_id = listings.id
        JOIN users ON listings.owner_id = users.id
        WHERE bookings.student_id = ?
@@ -182,11 +183,12 @@ router.get('/received', requireRole('hoster', 'admin'), async (req, res) => {
 
     let query = `
       SELECT bookings.id, bookings.created_at, bookings.payment_status, bookings.payment_deadline, bookings.paid_at,
-             room_types.room_type, room_types.price,
+             room_types.room_type, room_types.price, rooms.room_number,
              listings.id AS listing_id, listings.title,
              users.name AS student_name, users.phone AS student_phone, users.email AS student_email
       FROM bookings
       JOIN room_types ON bookings.room_type_id = room_types.id
+      LEFT JOIN rooms ON bookings.room_id = rooms.id
       JOIN listings ON bookings.listing_id = listings.id
       JOIN users ON bookings.student_id = users.id
     `;
@@ -225,7 +227,7 @@ router.delete('/:id', requireRole('student', 'hoster', 'admin'), async (req, res
     await connection.beginTransaction();
 
     const [bookings] = await connection.query(
-      `SELECT bookings.room_type_id, bookings.student_id, bookings.payment_status, listings.owner_id
+      `SELECT bookings.room_type_id, bookings.room_id, bookings.student_id, bookings.payment_status, listings.owner_id
        FROM bookings
        JOIN listings ON bookings.listing_id = listings.id
        WHERE bookings.id = ?`,
@@ -261,6 +263,14 @@ router.delete('/:id', requireRole('student', 'hoster', 'admin'), async (req, res
        WHERE id = ?`,
       [booking.room_type_id]
     );
+
+    // A paid booking has a specific numbered room tied to it (e.g. "A001")
+    // — free that exact unit back up too, not just the room_type's count,
+    // so the next student to pay for this room type can be assigned it.
+    if (booking.room_id) {
+      await connection.query("UPDATE rooms SET status = 'available' WHERE id = ?", [booking.room_id]);
+    }
+
     await connection.query('DELETE FROM bookings WHERE id = ?', [id]);
 
     await connection.commit();

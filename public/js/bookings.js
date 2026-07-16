@@ -65,6 +65,7 @@ function renderBookings(bookings) {
         </div>
         <div class="price">GH₵ ${Number(b.price).toLocaleString()} <span class="unit">/ year</span></div>
         ${paymentBadgeHTML(b)}
+        ${b.payment_status === 'paid' && b.room_number ? `<div class="room-assigned">Your room: <strong>${escapeHTML(b.room_number)}</strong></div>` : ''}
         <div class="booking-owner">Owner: ${escapeHTML(b.owner_name)}, <a href="tel:${b.owner_phone}">${b.owner_phone}</a></div>
       </div>
       <div class="booking-actions">

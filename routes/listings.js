@@ -248,12 +248,30 @@ router.post('/', requireRole('hoster', 'admin'), uploadMultipleImages, async (re
     );
 
     const listingId = result.insertId;
-    const roomTypeValues = cleanRoomTypes.map((rt) => [listingId, rt.roomType, rt.price, rt.quantity, rt.quantity]);
 
-    await connection.query(
-      `INSERT INTO room_types (listing_id, room_type, price, total_quantity, available_quantity) VALUES ?`,
-      [roomTypeValues]
-    );
+    // Each room type gets its own letter (A, B, C...) in creation order,
+    // and within it every physical unit gets a zero-padded number — e.g.
+    // the first room type's units are A001, A002, A003..., matching
+    // whatever a hoster tells students their room actually is once a
+    // booking gets paid for and a specific unit is assigned to them.
+    let prefixCode = 'A'.charCodeAt(0);
+    for (const rt of cleanRoomTypes) {
+      const prefix = String.fromCharCode(prefixCode);
+      prefixCode += 1;
+
+      const [rtResult] = await connection.query(
+        `INSERT INTO room_types (listing_id, room_type, prefix, price, total_quantity, available_quantity)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [listingId, rt.roomType, prefix, rt.price, rt.quantity, rt.quantity]
+      );
+      const roomTypeId = rtResult.insertId;
+
+      const roomRows = [];
+      for (let i = 1; i <= rt.quantity; i++) {
+        roomRows.push([roomTypeId, `${prefix}${String(i).padStart(3, '0')}`]);
+      }
+      await connection.query('INSERT INTO rooms (room_type_id, room_number) VALUES ?', [roomRows]);
+    }
 
     if (uploadedFiles.length > 0) {
       const photoValues = uploadedFiles.map((f, i) => [listingId, f.cloudinaryUrl, f.cloudinaryPublicId, i]);
@@ -419,7 +437,7 @@ router.put('/:id', requireRole('hoster', 'admin'), uploadMultipleImages, async (
     await connection.beginTransaction();
 
     const [existingRoomTypes] = await connection.query(
-      'SELECT id, room_type, total_quantity, available_quantity FROM room_types WHERE listing_id = ?',
+      'SELECT id, room_type, prefix, total_quantity, available_quantity FROM room_types WHERE listing_id = ?',
       [id]
     );
 
@@ -432,6 +450,20 @@ router.put('/:id', requireRole('hoster', 'admin'), uploadMultipleImages, async (
           error: `Cannot remove "${existing.room_type}" (it has ${bookedCount} active booking(s)). Cancel those first.`,
         });
       }
+    }
+
+    // Prefix letters already spoken for, so a brand-new room type added in
+    // this edit doesn't collide with one that's staying as-is.
+    const usedPrefixes = new Set(existingRoomTypes.map((e) => e.prefix).filter(Boolean));
+    let nextPrefixCode = 'A'.charCodeAt(0);
+    function claimNextPrefix() {
+      let letter = String.fromCharCode(nextPrefixCode);
+      while (usedPrefixes.has(letter)) {
+        nextPrefixCode += 1;
+        letter = String.fromCharCode(nextPrefixCode);
+      }
+      usedPrefixes.add(letter);
+      return letter;
     }
 
     for (const rt of cleanRoomTypes) {
@@ -449,17 +481,55 @@ router.put('/:id', requireRole('hoster', 'admin'), uploadMultipleImages, async (
           'UPDATE room_types SET price = ?, total_quantity = ?, available_quantity = ? WHERE id = ?',
           [rt.price, rt.quantity, newAvailable, existing.id]
         );
+
+        const diff = rt.quantity - existing.total_quantity;
+        if (diff > 0) {
+          // Growing: continue the numbering sequence rather than assuming
+          // it always starts right after the old total_quantity, in case
+          // any past shrink+grow cycle left a gap.
+          const [[{ maxNum }]] = await connection.query(
+            `SELECT COALESCE(MAX(CAST(SUBSTRING(room_number, 2) AS UNSIGNED)), 0) AS maxNum
+             FROM rooms WHERE room_type_id = ?`,
+            [existing.id]
+          );
+          // mysql2 returns this aggregate as a string, not a number —
+          // without Number(), maxNum + i below is string concatenation
+          // ("5" + 1 = "51") instead of addition (5 + 1 = 6).
+          const maxNumValue = Number(maxNum);
+          const newRoomRows = [];
+          for (let i = 1; i <= diff; i++) {
+            const num = maxNumValue + i;
+            newRoomRows.push([existing.id, `${existing.prefix}${String(num).padStart(3, '0')}`]);
+          }
+          await connection.query('INSERT INTO rooms (room_type_id, room_number) VALUES ?', [newRoomRows]);
+        } else if (diff < 0) {
+          // Shrinking: only ever remove rooms nobody's actually in — the
+          // bookedCount check above already guarantees there are enough
+          // unoccupied units to spare.
+          await connection.query(
+            'DELETE FROM rooms WHERE room_type_id = ? AND status = \'available\' ORDER BY CAST(SUBSTRING(room_number, 2) AS UNSIGNED) DESC LIMIT ?',
+            [existing.id, Math.abs(diff)]
+          );
+        }
       } else {
-        await connection.query(
-          'INSERT INTO room_types (listing_id, room_type, price, total_quantity, available_quantity) VALUES (?, ?, ?, ?, ?)',
-          [id, rt.roomType, rt.price, rt.quantity, rt.quantity]
+        const prefix = claimNextPrefix();
+        const [rtResult] = await connection.query(
+          'INSERT INTO room_types (listing_id, room_type, prefix, price, total_quantity, available_quantity) VALUES (?, ?, ?, ?, ?, ?)',
+          [id, rt.roomType, prefix, rt.price, rt.quantity, rt.quantity]
         );
+        const roomTypeId = rtResult.insertId;
+        const roomRows = [];
+        for (let i = 1; i <= rt.quantity; i++) {
+          roomRows.push([roomTypeId, `${prefix}${String(i).padStart(3, '0')}`]);
+        }
+        await connection.query('INSERT INTO rooms (room_type_id, room_number) VALUES ?', [roomRows]);
       }
     }
 
     for (const existing of existingRoomTypes) {
       const stillPresent = cleanRoomTypes.some((rt) => rt.roomType === existing.room_type);
       if (!stillPresent) {
+        // rooms rows cascade-delete with it (FK ON DELETE CASCADE)
         await connection.query('DELETE FROM room_types WHERE id = ?', [existing.id]);
       }
     }

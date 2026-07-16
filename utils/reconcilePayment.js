@@ -23,7 +23,7 @@ async function reconcileByReference(reference) {
   if (!reference) return { status: 'no_reference' };
 
   const [[booking]] = await pool.query(
-    `SELECT bookings.id, bookings.payment_status,
+    `SELECT bookings.id, bookings.payment_status, bookings.room_type_id,
             room_types.room_type, room_types.price, listings.title AS listing_title,
             student.name AS student_name, student.email AS student_email, student.phone AS student_phone,
             owner.name AS owner_name, owner.email AS owner_email, owner.phone AS owner_phone
@@ -59,19 +59,70 @@ async function reconcileByReference(reference) {
     return { status: 'amount_mismatch' };
   }
 
-  // Idempotent: only the request that actually flips pending -> paid sends notifications.
-  const [updateResult] = await pool.query(
-    "UPDATE bookings SET payment_status = 'paid', paid_at = NOW() WHERE id = ? AND payment_status = 'pending'",
-    [booking.id]
-  );
-  if (updateResult.affectedRows === 0) return { status: 'already_paid', booking };
+  // A specific physical room (e.g. "A001") only ever gets handed to a
+  // student once they've actually paid, not at the initial 72-hour hold —
+  // a pending, possibly-never-completed booking shouldn't tie up a
+  // numbered unit. The status flip and the room assignment happen in one
+  // transaction so nothing can observe "paid" without a room attempt
+  // having already happened, and so two concurrent reconcile calls can't
+  // both grab the same room.
+  let assignedRoomNumber = null;
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
 
-  console.log(`Booking #${booking.id} confirmed paid (reference: ${reference}, verified amount: ${verified.amount}).`);
+    const [updateResult] = await connection.query(
+      "UPDATE bookings SET payment_status = 'paid', paid_at = NOW() WHERE id = ? AND payment_status = 'pending'",
+      [booking.id]
+    );
+
+    if (updateResult.affectedRows === 0) {
+      // A concurrent reconcile call (webhook + page load landing at the
+      // same moment, say) already flipped it, nothing left to do here.
+      await connection.rollback();
+      return { status: 'already_paid', booking };
+    }
+
+    const [[room]] = await connection.query(
+      `SELECT id, room_number FROM rooms
+       WHERE room_type_id = ? AND status = 'available'
+       ORDER BY CAST(SUBSTRING(room_number, 2) AS UNSIGNED) ASC
+       LIMIT 1 FOR UPDATE`,
+      [booking.room_type_id]
+    );
+
+    if (room) {
+      await connection.query("UPDATE rooms SET status = 'occupied' WHERE id = ?", [room.id]);
+      await connection.query('UPDATE bookings SET room_id = ? WHERE id = ?', [room.id, booking.id]);
+      assignedRoomNumber = room.room_number;
+    } else {
+      // Shouldn't normally happen (the room_types.available_quantity check
+      // at booking time already gated this), but a numbering gap is never
+      // a reason to fail a real, verified payment, it just won't have a
+      // room number attached until a hoster sorts it out.
+      console.warn(
+        `No available numbered room for room_type_id ${booking.room_type_id} on booking #${booking.id}, payment recorded without a room assignment.`
+      );
+    }
+
+    await connection.commit();
+  } catch (err) {
+    await connection.rollback();
+    console.error(`Error finalizing payment for booking #${booking.id}:`, err);
+    return { status: 'update_failed' };
+  } finally {
+    connection.release();
+  }
+
+  console.log(
+    `Booking #${booking.id} confirmed paid (reference: ${reference}, verified amount: ${verified.amount}, room: ${assignedRoomNumber || 'unassigned'}).`
+  );
 
   sendPaymentConfirmationEmailToStudent({
     toEmail: booking.student_email,
     toName: booking.student_name,
     listingTitle: booking.listing_title,
+    roomNumber: assignedRoomNumber,
   });
   sendPaymentConfirmationEmailToOwner({
     toEmail: booking.owner_email,
@@ -80,18 +131,21 @@ async function reconcileByReference(reference) {
     listingTitle: booking.listing_title,
     roomType: booking.room_type,
     price: booking.price,
+    roomNumber: assignedRoomNumber,
   });
   sendPaymentConfirmationSMSToStudent({
     studentPhone: booking.student_phone,
     listingTitle: booking.listing_title,
+    roomNumber: assignedRoomNumber,
   });
   sendPaymentConfirmationSMSToOwner({
     ownerPhone: booking.owner_phone,
     studentName: booking.student_name,
     listingTitle: booking.listing_title,
+    roomNumber: assignedRoomNumber,
   });
 
-  return { status: 'newly_paid', booking };
+  return { status: 'newly_paid', booking, roomNumber: assignedRoomNumber };
 }
 
 module.exports = { reconcileByReference };

@@ -1961,6 +1961,25 @@ select, input, textarea {
 .payment-badge.paid { background: rgba(60, 130, 90, 0.15); color: #2f6b46; }
 .payment-badge.expired { background: rgba(180, 60, 60, 0.12); color: var(--danger); }
 
+.room-assigned {
+  font-size: 0.85rem;
+  font-family: var(--font-mono);
+  color: var(--ink);
+  background: rgba(60, 130, 90, 0.1);
+  border: 1px solid rgba(60, 130, 90, 0.25);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.65rem;
+  display: inline-block;
+  margin: 0.3rem 0;
+}
+.room-assigned strong { color: #2f6b46; }
+
+.tag.room-tag {
+  background: rgba(60, 130, 90, 0.12);
+  color: #2f6b46;
+  font-family: var(--font-mono);
+}
+
 .booking-actions {
   display: flex;
   flex-direction: column;

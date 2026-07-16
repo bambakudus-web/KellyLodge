@@ -66,13 +66,15 @@ async function sendBookingSMSToStudent({ studentPhone, listingTitle, roomType, p
   await sendSMS({ toPhone: studentPhone, message });
 }
 
-async function sendPaymentConfirmationSMSToStudent({ studentPhone, listingTitle }) {
-  const message = `KellyLodge: payment received! Your booking at ${listingTitle} is confirmed. Thank you for using KellyLodge.`;
+async function sendPaymentConfirmationSMSToStudent({ studentPhone, listingTitle, roomNumber }) {
+  const roomLine = roomNumber ? ` You're in room ${roomNumber}.` : '';
+  const message = `KellyLodge: payment received! Your booking at ${listingTitle} is confirmed.${roomLine} Thank you for using KellyLodge.`;
   await sendSMS({ toPhone: studentPhone, message });
 }
 
-async function sendPaymentConfirmationSMSToOwner({ ownerPhone, studentName, listingTitle }) {
-  const message = `KellyLodge: ${studentName} has completed payment for their booking at ${listingTitle}. The booking is now confirmed.`;
+async function sendPaymentConfirmationSMSToOwner({ ownerPhone, studentName, listingTitle, roomNumber }) {
+  const roomLine = roomNumber ? ` (room ${roomNumber})` : '';
+  const message = `KellyLodge: ${studentName} has completed payment for their booking at ${listingTitle}${roomLine}. The booking is now confirmed.`;
   await sendSMS({ toPhone: ownerPhone, message });
 }
 

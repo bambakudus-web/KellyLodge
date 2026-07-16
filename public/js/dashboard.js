@@ -82,6 +82,7 @@ function bookingsSectionHTML(bookings) {
           <span class="tag">${b.room_type}</span>
           <span>${escapeHTML(b.title)}</span>
           ${paymentBadgeHTML(b)}
+          ${b.payment_status === 'paid' && b.room_number ? `<span class="tag room-tag">Room ${escapeHTML(b.room_number)}</span>` : ''}
         </div>
         <div class="bri-contact">
           <a href="tel:${b.student_phone}">${b.student_phone}</a> &middot; <a href="mailto:${b.student_email}">${b.student_email}</a>

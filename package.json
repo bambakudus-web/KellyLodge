@@ -9,6 +9,7 @@
     "seed": "node database/seed.js",
     "migrate:bookings": "node database/add_bookings.js",
     "migrate:room-types": "node database/add_room_types.js",
+    "migrate:room-numbers": "node database/add_room_numbers.js",
     "test": "node --test tests/"
   },
   "dependencies": {

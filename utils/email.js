@@ -190,7 +190,7 @@ async function sendPaymentReminderEmail({ toEmail, toName, listingTitle, roomTyp
   await sendViaBrevo({ toEmail, toName, subject: `Action needed: pay for your room at ${listingTitle}`, html });
 }
 
-async function sendPaymentConfirmationEmailToStudent({ toEmail, toName, listingTitle }) {
+async function sendPaymentConfirmationEmailToStudent({ toEmail, toName, listingTitle, roomNumber }) {
   const html = wrapEmailTemplate({
     heading: 'Payment received, your room is confirmed',
     bodyHtml: `
@@ -198,6 +198,7 @@ async function sendPaymentConfirmationEmailToStudent({ toEmail, toName, listingT
       <p>We've received your payment for <strong>${listingTitle}</strong>. Your booking is now fully confirmed.</p>
       <p>Thank you for using KellyLodge.</p>
     `,
+    detailsHtml: roomNumber ? detailRow('Your room', roomNumber) : '',
     ctaText: 'View my booking',
     ctaUrl: `${process.env.APP_URL || 'http://localhost:3000'}/mybookings.html`,
   });
@@ -205,7 +206,7 @@ async function sendPaymentConfirmationEmailToStudent({ toEmail, toName, listingT
   await sendViaBrevo({ toEmail, toName, subject: `Payment confirmed: ${listingTitle}`, html });
 }
 
-async function sendPaymentConfirmationEmailToOwner({ toEmail, toName, studentName, listingTitle, roomType, price }) {
+async function sendPaymentConfirmationEmailToOwner({ toEmail, toName, studentName, listingTitle, roomType, price, roomNumber }) {
   const html = wrapEmailTemplate({
     heading: 'A booking has been paid for',
     bodyHtml: `
@@ -215,6 +216,7 @@ async function sendPaymentConfirmationEmailToOwner({ toEmail, toName, studentNam
     detailsHtml:
       detailRow('Listing', listingTitle) +
       detailRow('Room type', roomType) +
+      (roomNumber ? detailRow('Room assigned', roomNumber) : '') +
       detailRow('Price', `GH₵ ${Number(price).toLocaleString()} / year`),
     ctaText: 'View your dashboard',
     ctaUrl: `${process.env.APP_URL || 'http://localhost:3000'}/dashboard.html`,
