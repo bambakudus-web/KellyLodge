@@ -147,6 +147,7 @@ async function init() {
             return;
           }
           document.querySelector(`.booking-received-item[data-booking-id="${id}"]`).remove();
+          showToast('Booking deleted.', 'success');
         } catch (err) {
           showToast('Could not delete this booking.');
           btn.disabled = false;

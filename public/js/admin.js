@@ -190,6 +190,7 @@ function attachListingActions(user) {
           body: JSON.stringify({ status: newStatus }),
         });
         loadTabContent(user);
+        showToast(newStatus === 'removed' ? 'Listing removed.' : 'Listing restored.', 'success');
       } catch (err) {
         showToast(err.message);
       }
@@ -214,6 +215,7 @@ function attachUserActions(user) {
       try {
         await fetchJSON(`/api/admin/users/${btn.dataset.id}`, { method: 'DELETE' });
         loadTabContent(user);
+        showToast('User deleted.', 'success');
       } catch (err) {
         showToast(err.message);
       }
@@ -235,6 +237,7 @@ function attachUserActions(user) {
           body: JSON.stringify({ role: newRole }),
         });
         loadTabContent(user);
+        showToast(`Role updated to "${newRole}".`, 'success');
       } catch (err) {
         showToast(err.message);
         select.value = originalValue;

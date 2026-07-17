@@ -98,6 +98,7 @@ function renderConversationList() {
           if (threadPanel) threadPanel.innerHTML = '<div class="thread-empty">Select a conversation to start chatting.</div>';
         }
         renderConversationList();
+        showToast('Conversation deleted.', 'success');
       } catch (err) {
         console.error(err);
         showToast('Could not delete conversation.');

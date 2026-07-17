@@ -232,6 +232,7 @@ window.KellyLodgeChatWidget = (function () {
             conversations = conversations.filter((c) => c.id !== Number(conversationId));
             renderList();
             updateBadge();
+            showToast('Conversation deleted.', 'success');
           } catch (err) {
             console.error(err);
             showToast('Could not delete conversation.');

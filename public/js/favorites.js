@@ -68,6 +68,7 @@ function renderFavorites(favorites) {
         const res = await secureFetch(`/api/favorites/${listingId}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Remove failed');
         document.querySelector(`.booking-item[data-listing-id="${listingId}"]`).remove();
+        showToast('Removed from favorites.', 'success');
       } catch (err) {
         showToast('Could not remove this favorite.');
       }

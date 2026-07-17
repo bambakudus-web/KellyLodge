@@ -87,6 +87,7 @@ function renderBookings(bookings) {
           return;
         }
         document.querySelector(`.booking-item[data-booking-id="${id}"]`).remove();
+        showToast('Booking cancelled.', 'success');
       } catch (err) {
         showToast('Could not cancel this booking.');
       }
