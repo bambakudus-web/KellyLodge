@@ -12,6 +12,10 @@ const VALID_ROOM_TYPES = [
   'Shared (3 in a room)',
   'Shared (4 in a room)',
 ];
+// The platform's price floor — see database/update_prices.js, which bumped
+// every room type to this tier or above. This was never actually enforced
+// server-side until now, a listing could quietly slip in under it.
+const MIN_ROOM_PRICE = 3000;
 const MAX_AREA_LENGTH = 60;
 
 // Areas are free text now (a hoster can type any neighborhood name), so this
@@ -224,6 +228,9 @@ router.post('/', requireRole('hoster', 'admin'), uploadMultipleImages, async (re
       if (isNaN(price) || price <= 0) {
         return res.status(400).json({ error: `"${roomType}" needs a valid price greater than 0.` });
       }
+      if (price < MIN_ROOM_PRICE) {
+        return res.status(400).json({ error: `"${roomType}" must be at least GH₵${MIN_ROOM_PRICE.toLocaleString()} / year.` });
+      }
       if (!Number.isInteger(quantity) || quantity <= 0 || quantity > 2000) {
         return res.status(400).json({ error: `Enter a valid quantity (1-2000) for "${roomType}".` });
       }
@@ -426,6 +433,9 @@ router.put('/:id', requireRole('hoster', 'admin'), uploadMultipleImages, async (
       }
       if (isNaN(price) || price <= 0) {
         return res.status(400).json({ error: `"${roomType}" needs a valid price greater than 0.` });
+      }
+      if (price < MIN_ROOM_PRICE) {
+        return res.status(400).json({ error: `"${roomType}" must be at least GH₵${MIN_ROOM_PRICE.toLocaleString()} / year.` });
       }
       if (!Number.isInteger(quantity) || quantity <= 0 || quantity > 2000) {
         return res.status(400).json({ error: `Enter a valid quantity (1-2000) for "${roomType}".` });

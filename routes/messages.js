@@ -157,6 +157,16 @@ router.delete('/conversations/:id', requireLogin, async (req, res) => {
 
     await pool.query('DELETE FROM conversations WHERE id = ?', [id]);
 
+    // Both participants get notified live — whoever didn't click delete
+    // sees it vanish from their list (and their open thread close, if they
+    // had it open) immediately, not just on their next page load.
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`user:${conversation.student_id}`)
+        .to(`user:${conversation.hoster_id}`)
+        .emit('conversation_deleted', { conversationId: Number(id) });
+    }
+
     res.json({ message: 'Conversation deleted.' });
   } catch (err) {
     console.error('Error deleting conversation:', err);

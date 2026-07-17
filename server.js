@@ -29,8 +29,22 @@ const PORT = process.env.PORT || 3000;
 
 app.set('trust proxy', 1); // needed for secure cookies behind Railway's proxy
 
+// Only your actual site (and localhost, for local dev) should be allowed
+// to make credentialed requests, not "reflect back whatever origin asked."
+// Requests with no Origin header at all (server-to-server calls, Paystack's
+// webhook, curl/Postman) are still let through — there's nothing to check
+// them against, and they're not the browser-cookie-based attack this is
+// guarding against anyway.
+const allowedOrigins = [process.env.APP_URL, 'http://localhost:3000'].filter(Boolean);
+
 app.use(cors({
-  origin: true,
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
 }));
 app.use(express.json({
@@ -104,7 +118,8 @@ if (require.main === module) {
   // Socket.io needs the raw HTTP server (not just the Express app) to
   // attach its WebSocket upgrade handling to.
   const httpServer = http.createServer(app);
-  initSocket(httpServer, sessionMiddleware);
+  const io = initSocket(httpServer, sessionMiddleware);
+  app.set('io', io);
 
   httpServer.listen(PORT, () => {
     console.log(`KellyLodge server running on port ${PORT}`);

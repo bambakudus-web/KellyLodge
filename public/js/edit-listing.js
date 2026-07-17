@@ -28,7 +28,7 @@ function roomTypeRowsHTML(existingRoomTypes) {
         <span class="rt-name">${type}</span>
         <div class="rt-field">
           <label for="rt-price-${i}">Price (GH₵/year)</label>
-          <input type="number" id="rt-price-${i}" class="rt-price" min="1" step="0.01"
+          <input type="number" id="rt-price-${i}" class="rt-price" min="3000" step="0.01"
                  value="${existing ? existing.price : ''}" placeholder="e.g. 3000" />
         </div>
         <div class="rt-field">

@@ -23,7 +23,7 @@ async function reconcileByReference(reference) {
   if (!reference) return { status: 'no_reference' };
 
   const [[booking]] = await pool.query(
-    `SELECT bookings.id, bookings.payment_status, bookings.room_type_id,
+    `SELECT bookings.id, bookings.payment_status, bookings.room_type_id, bookings.student_id, bookings.listing_id,
             room_types.room_type, room_types.price, listings.title AS listing_title,
             student.name AS student_name, student.email AS student_email, student.phone AS student_phone,
             owner.name AS owner_name, owner.email AS owner_email, owner.phone AS owner_phone
@@ -104,6 +104,17 @@ async function reconcileByReference(reference) {
         `No available numbered room for room_type_id ${booking.room_type_id} on booking #${booking.id}, payment recorded without a room assignment.`
       );
     }
+
+    // A permanent record that this student genuinely paid for and stayed
+    // at this listing, kept independent of the booking row itself. Review
+    // eligibility checks this table, not the bookings table, specifically
+    // so that a booking being deleted later (a hoster clearing out an old
+    // paid booking, an expired one being swept) can never take away a
+    // review someone has already earned the right to leave.
+    await connection.query(
+      'INSERT IGNORE INTO completed_stays (student_id, listing_id) VALUES (?, ?)',
+      [booking.student_id, booking.listing_id]
+    );
 
     await connection.commit();
   } catch (err) {

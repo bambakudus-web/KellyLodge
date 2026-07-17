@@ -4,6 +4,7 @@ const container = document.getElementById('messages-container');
 let socket = null;
 let currentUser = null;
 let activeConversationId = null;
+const selfDeletedConversationIds = new Set();
 let conversations = [];
 let typingTimeout = null;
 
@@ -83,6 +84,7 @@ function renderConversationList() {
       e.stopPropagation();
       if (!confirm('Delete this entire conversation? This removes all messages in it for both of you.')) return;
       const conversationId = delBtn.getAttribute('data-id');
+      selfDeletedConversationIds.add(Number(conversationId));
       try {
         const res = await secureFetch(`/api/messages/conversations/${conversationId}`, { method: 'DELETE' });
         const data = await res.json();
@@ -250,6 +252,19 @@ function setupSocket() {
   });
 
   socket.on('conversation_updated', () => {
+    refreshConversationList();
+  });
+
+  socket.on('conversation_deleted', ({ conversationId }) => {
+    if (selfDeletedConversationIds.has(conversationId)) {
+      selfDeletedConversationIds.delete(conversationId);
+    } else if (conversationId === activeConversationId) {
+      activeConversationId = null;
+      document.getElementById('messages-shell')?.classList.remove('thread-open');
+      const threadPanel = document.getElementById('thread-panel');
+      if (threadPanel) threadPanel.innerHTML = '<div class="thread-empty">Select a conversation to start chatting.</div>';
+      showToast('This conversation was deleted.', 'info');
+    }
     refreshConversationList();
   });
 

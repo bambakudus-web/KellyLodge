@@ -23,7 +23,11 @@ router.get('/listing/:listingId', async (req, res) => {
 });
 
 // GET /api/reviews/can-review/:listingId — tells the frontend whether the
-// logged-in student has a booking here (and can therefore leave a review)
+// logged-in student has actually paid for and stayed at this listing (and
+// can therefore leave a review). Checked against completed_stays, not the
+// bookings table directly, since a booking can be pending (never actually
+// paid) or can get deleted later, neither of which should affect whether
+// someone who genuinely paid can still leave a review.
 router.get('/can-review/:listingId', requireLogin, async (req, res) => {
   try {
     if (req.session.user.role !== 'student') {
@@ -31,7 +35,7 @@ router.get('/can-review/:listingId', requireLogin, async (req, res) => {
     }
     const { listingId } = req.params;
     const [rows] = await pool.query(
-      'SELECT id FROM bookings WHERE listing_id = ? AND student_id = ? LIMIT 1',
+      'SELECT id FROM completed_stays WHERE listing_id = ? AND student_id = ? LIMIT 1',
       [listingId, req.session.user.id]
     );
     res.json({ canReview: rows.length > 0 });
@@ -53,12 +57,12 @@ router.post('/', requireRole('student'), async (req, res) => {
       return res.status(400).json({ error: 'A listing and a rating from 1 to 5 are required.' });
     }
 
-    const [bookingRows] = await pool.query(
-      'SELECT id FROM bookings WHERE listing_id = ? AND student_id = ? LIMIT 1',
+    const [stayRows] = await pool.query(
+      'SELECT id FROM completed_stays WHERE listing_id = ? AND student_id = ? LIMIT 1',
       [listing_id, studentId]
     );
-    if (bookingRows.length === 0) {
-      return res.status(403).json({ error: 'You can only review a hostel you have booked.' });
+    if (stayRows.length === 0) {
+      return res.status(403).json({ error: 'You can only review a hostel you have paid for and stayed at.' });
     }
 
     const trimmedComment = (comment || '').trim().slice(0, 1000);

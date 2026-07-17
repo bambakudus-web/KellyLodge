@@ -7,6 +7,7 @@ window.KellyLodgeChatWidget = (function () {
   let socket = null;
   let currentUser = null;
   let activeConversationId = null;
+  const selfDeletedConversationIds = new Set();
   let conversations = [];
   let panelOpen = false;
   let socketReady = false;
@@ -139,6 +140,16 @@ window.KellyLodgeChatWidget = (function () {
 
     socket.on('conversation_updated', () => refreshConversations());
 
+    socket.on('conversation_deleted', ({ conversationId }) => {
+      if (selfDeletedConversationIds.has(conversationId)) {
+        selfDeletedConversationIds.delete(conversationId);
+      } else if (conversationId === activeConversationId) {
+        showConversationList();
+        showToast('This conversation was deleted.', 'info');
+      }
+      refreshConversations();
+    });
+
     socket.on('message_deleted', ({ messageId, conversationId }) => {
       if (conversationId === activeConversationId) {
         const row = document.querySelector(`.klw-msg-row[data-message-id="${messageId}"]`);
@@ -217,6 +228,7 @@ window.KellyLodgeChatWidget = (function () {
           e.stopPropagation();
           if (!confirm('Delete this entire conversation? This removes all messages in it for both of you.')) return;
           const conversationId = delBtn.getAttribute('data-id');
+          selfDeletedConversationIds.add(Number(conversationId));
           try {
             const token = await getCsrfTokenLocal();
             const res = await fetch(`/api/messages/conversations/${conversationId}`, {

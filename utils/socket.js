@@ -5,8 +5,19 @@ const { Server } = require('socket.io');
 const pool = require('../db');
 
 function initSocket(httpServer, sessionMiddleware) {
+  const allowedOrigins = [process.env.APP_URL, 'http://localhost:3000'].filter(Boolean);
+
   const io = new Server(httpServer, {
-    cors: { origin: true, credentials: true },
+    cors: {
+      origin(origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
+      credentials: true,
+    },
   });
 
   io.engine.use(sessionMiddleware);
