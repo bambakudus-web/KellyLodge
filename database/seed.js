@@ -1,5 +1,5 @@
 // database/seed.js — populates demo users, listings, and room-type inventory for KellyLodge
-// Run with: npm run seed  (after schema.sql has been applied)
+// Run with: npm run seed  (after node database/init_schema.js has been run)
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
 const pool = require('../db');

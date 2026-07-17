@@ -714,9 +714,6 @@ select:focus, input:focus, textarea:focus, button:focus {
 .key-board {
   position: relative;
   height: 340px;
-}
-
-.key-board {
   perspective: 1400px;
   transition: transform 0.25s ease-out;
 }
@@ -790,10 +787,6 @@ select:focus, input:focus, textarea:focus, button:focus {
   .landing-hero .hero-inner { grid-template-columns: 1fr; }
   .key-board { height: 260px; margin-top: 1rem; }
   .key-board .keytag { width: 180px; }
-  .landing-hero::before {
-    background-image: url('/images/hero-room-mobile.avif');
-    background-position: center 60%;
-  }
 }
 
 .landing-section {
@@ -945,6 +938,7 @@ select:focus, input:focus, textarea:focus, button:focus {
   border-radius: var(--radius-lg);
   padding: 2.3rem;
   box-shadow: var(--shadow-lg);
+  overflow: hidden;
 }
 
 .auth-card h2 { text-align: center; }
@@ -988,19 +982,6 @@ select:focus, input:focus, textarea:focus, button:focus {
 }
 
 .auth-switch a { color: var(--brass-dark); font-weight: 700; }
-
-.demo-hint {
-  background: var(--paper);
-  border: 1px dashed var(--line);
-  border-radius: var(--radius-sm);
-  padding: 0.8rem 1rem;
-  font-size: 0.8rem;
-  color: var(--ink-soft);
-  margin-bottom: 1.3rem;
-  font-family: var(--font-mono);
-  line-height: 1.6;
-}
-.demo-hint strong { color: var(--ink); }
 
 /* ---------- Nav: flat icon toolbar (desktop) / vertical list (mobile) ---------- */
 
@@ -1334,20 +1315,6 @@ table.admin-table tr:hover { background: rgba(192, 138, 33, 0.04); }
 
 
 /* --- Booking system additions --- */
-.access-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-  background: rgba(180, 140, 40, 0.1);
-  border: 1px solid rgba(180, 140, 40, 0.35);
-  border-radius: 10px;
-  padding: 0.9rem 1.2rem;
-  margin: 0 1.5rem 1rem;
-  font-size: 0.92rem;
-}
-.access-banner-actions { display: flex; gap: 0.6rem; flex-shrink: 0; }
 
 .rooms-left {
   display: inline-block;
@@ -1522,16 +1489,6 @@ table.admin-table tr:hover { background: rgba(192, 138, 33, 0.04); }
   .booking-received-item { flex-direction: column; align-items: flex-start; }
   .booking-received-item .bri-side { text-align: left; }
 }
-/* --- Photo upload preview on the post form --- */
-.image-preview {
-  margin-top: 0.6rem;
-  max-width: 260px;
-  max-height: 180px;
-  object-fit: cover;
-  border-radius: 10px;
-  border: 1px solid rgba(0,0,0,0.1);
-}
-
 /* --- Pagination on the browse page --- */
 .pagination {
   display: flex;
@@ -1867,11 +1824,6 @@ select, input, textarea {
    Auth pages (login/signup): the form itself, not a layout gimmick
    ========================================================================= */
 
-.auth-card {
-  position: relative;
-  overflow: hidden;
-}
-
 /* A thin brass accent along the top of the card, a small signature touch
    instead of a generic flat white box */
 .auth-card-topbar {
@@ -2016,19 +1968,6 @@ select, input, textarea {
 /* =========================================================================
    Real-time messaging: nav badge, inbox list, thread view
    ========================================================================= */
-
-.nav-badge {
-  display: none;
-  background: var(--danger, #b43c3c);
-  color: white;
-  font-size: 0.68rem;
-  font-weight: 800;
-  font-family: var(--font-mono);
-  padding: 0.05rem 0.4rem;
-  border-radius: 999px;
-  margin-left: 0.4rem;
-  vertical-align: middle;
-}
 
 .messages-shell {
   display: grid;

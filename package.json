@@ -7,9 +7,18 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "seed": "node database/seed.js",
+    "db:init": "node database/init_schema.js",
     "migrate:bookings": "node database/add_bookings.js",
     "migrate:room-types": "node database/add_room_types.js",
     "migrate:room-numbers": "node database/add_room_numbers.js",
+    "migrate:v2-features": "node database/add_v2_features.js",
+    "migrate:payments": "node database/add_payments.js",
+    "migrate:payouts": "node database/add_payouts.js",
+    "migrate:email-verification": "node database/add_email_verification.js",
+    "migrate:password-reset": "node database/add_password_reset.js",
+    "migrate:cloudinary-fields": "node database/add_cloudinary_fields.js",
+    "migrate:messaging": "node database/add_messaging.js",
+    "migrate:completed-stays": "node database/add_completed_stays.js",
     "test": "node --test tests/*.test.js"
   },
   "dependencies": {

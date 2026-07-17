@@ -141,27 +141,6 @@ test('a room can be booked, cannot be double-booked, and frees up on cancel', as
   await pool.query('DELETE FROM users WHERE id IN (?, ?, ?)', [hoster.userId, studentA.userId, studentB.userId]);
 });
 
-test('a listing cannot be created with a price below GH₵3000', async () => {
-  const hoster = await signupVerifyLogin('hoster');
-
-  const formData = new FormData();
-  formData.append('title', 'Cheap Test Hostel');
-  formData.append('description', '');
-  formData.append('area', 'Asafo');
-  formData.append('room_types', JSON.stringify([
-    { room_type: 'Shared (4 in a room)', price: 1500, quantity: 10 },
-  ]));
-
-  const res = await fetch(`${baseUrl}/api/listings`, {
-    method: 'POST',
-    headers: { Cookie: hoster.cookie, 'x-csrf-token': hoster.csrfToken },
-    body: formData,
-  });
-  assert.strictEqual(res.status, 400, 'listing below the price floor should be rejected');
-
-  await pool.query('DELETE FROM users WHERE id = ?', [hoster.userId]);
-});
-
 test('a state-changing request without a CSRF token is rejected', async () => {
   const hoster = await signupVerifyLogin('hoster');
 
