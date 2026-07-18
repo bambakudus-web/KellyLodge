@@ -516,6 +516,13 @@ select:focus, input:focus, textarea:focus, button:focus {
   margin: 0.4rem 0 1.2rem;
 }
 .detail-price .unit { font-size: 0.85rem; font-weight: 500; color: var(--ink-soft); font-family: var(--font-body); }
+.detail-price.price-gated {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  font-style: italic;
+}
 
 .contact-box {
   position: relative;

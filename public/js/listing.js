@@ -355,7 +355,7 @@ function renderListing(listing, currentUser, isFavorited) {
       ${distanceBadgeHTML(listing)}
       ${ratingSummaryHTML(listing)}
     </div>
-    <div class="detail-price">From GH₵ ${fromPrice.toLocaleString()} <span class="unit">/ year</span></div>
+    <div class="detail-price ${!currentUser ? 'price-gated' : ''}">${currentUser ? `From GH₵ ${fromPrice.toLocaleString()} <span class="unit">/ year</span>` : 'Log in to see price'}</div>
     <p>${listing.description ? escapeHTML(listing.description) : 'No description provided.'}</p>
 
     ${roomsSectionHTML(listing, currentUser)}
