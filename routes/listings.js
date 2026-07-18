@@ -90,8 +90,19 @@ router.get('/', async (req, res) => {
 
     const [rows] = await pool.query(query, [...params, pageSize, offset]);
 
+    // Price and room availability are only for logged-in eyes — this
+    // mirrors what the frontend already visually hides for guests, but
+    // enforced here too so it can't be read straight out of the network
+    // response by someone who's simply not logged in. Filtering by price
+    // above still works fine for guests, since minPrice/maxPrice narrows
+    // the SQL query itself; this only touches what comes back in the JSON.
+    const requester = req.session.user;
+    const listings = requester
+      ? rows
+      : rows.map(({ price, rooms_available, rooms_total, ...rest }) => rest);
+
     res.json({
-      listings: rows,
+      listings,
       page: pageNum,
       totalPages: Math.max(1, Math.ceil(total / pageSize)),
       total,
@@ -158,6 +169,15 @@ router.get('/:id', async (req, res) => {
 
     listing.room_types = roomTypes;
     listing.photos = photos;
+
+    // Same rule as the browse endpoint: price and per-room-type
+    // availability are only for logged-in eyes, stripped server-side so
+    // it can't be read straight out of the raw response by a logged-out
+    // visitor, not just visually hidden by the frontend.
+    if (!requester) {
+      delete listing.price;
+      listing.room_types = roomTypes.map(({ id: roomTypeId, room_type }) => ({ id: roomTypeId, room_type }));
+    }
 
     res.json(listing);
 

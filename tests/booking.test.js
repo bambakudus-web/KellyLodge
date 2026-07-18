@@ -98,7 +98,7 @@ test('a room can be booked, cannot be double-booked, and frees up on cancel', as
   assert.strictEqual(createRes.status, 201, 'listing creation should succeed');
   const { id: listingId } = await createRes.json();
 
-  const listingRes = await fetch(`${baseUrl}/api/listings/${listingId}`);
+  const listingRes = await fetch(`${baseUrl}/api/listings/${listingId}`, { headers: { Cookie: hoster.cookie } }); // logged in: needed to see room_types.available_quantity now that it is gated for guests
   const listing = await listingRes.json();
   assert.strictEqual(listing.room_types.length, 1);
   const roomTypeId = listing.room_types[0].id;
@@ -122,7 +122,7 @@ test('a room can be booked, cannot be double-booked, and frees up on cancel', as
   assert.strictEqual(bookBRes.status, 409, 'second booking on a full room type should be rejected');
 
   // Verify availability dropped to zero.
-  const afterBookRes = await fetch(`${baseUrl}/api/listings/${listingId}`);
+  const afterBookRes = await fetch(`${baseUrl}/api/listings/${listingId}`, { headers: { Cookie: hoster.cookie } });
   const afterBook = await afterBookRes.json();
   assert.strictEqual(afterBook.room_types[0].available_quantity, 0);
 
@@ -133,7 +133,7 @@ test('a room can be booked, cannot be double-booked, and frees up on cancel', as
   });
   assert.strictEqual(cancelRes.status, 200, 'cancel should succeed');
 
-  const afterCancelRes = await fetch(`${baseUrl}/api/listings/${listingId}`);
+  const afterCancelRes = await fetch(`${baseUrl}/api/listings/${listingId}`, { headers: { Cookie: hoster.cookie } });
   const afterCancel = await afterCancelRes.json();
   assert.strictEqual(afterCancel.room_types[0].available_quantity, 1, 'room should be available again after cancel');
 
