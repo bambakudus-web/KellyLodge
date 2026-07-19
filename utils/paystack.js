@@ -84,7 +84,21 @@ async function verifyTransaction(reference) {
 function isValidWebhookSignature(rawBody, signatureHeader) {
   if (!PAYSTACK_SECRET_KEY || !signatureHeader || !rawBody) return false;
   const expected = crypto.createHmac('sha512', PAYSTACK_SECRET_KEY).update(rawBody).digest('hex');
-  return expected === signatureHeader;
+
+  // A plain === comparison here would return as soon as it finds the
+  // first mismatched character, which — while V8 doesn't document its
+  // exact string-comparison timing — is exactly the class of thing HMAC
+  // signature checks are conventionally done with crypto.timingSafeEqual
+  // to rule out entirely, rather than relying on how a specific JS engine
+  // happens to implement string equality today. timingSafeEqual requires
+  // equal-length buffers, so the length check has to happen first — that
+  // alone can't leak anything useful, since a correct signature always has
+  // a fixed, known length (a hex-encoded SHA-512 digest, 128 characters).
+  const expectedBuffer = Buffer.from(expected, 'utf8');
+  const providedBuffer = Buffer.from(signatureHeader, 'utf8');
+  if (expectedBuffer.length !== providedBuffer.length) return false;
+
+  return crypto.timingSafeEqual(expectedBuffer, providedBuffer);
 }
 
 // --- Hoster payouts (Paystack Subaccounts) ---

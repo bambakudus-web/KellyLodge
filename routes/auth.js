@@ -12,6 +12,17 @@ const { isValidName, isValidEmail, isValidGhanaPhone, isValidPassword } = requir
 
 const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 
+// A precomputed bcrypt hash of a random, never-used string. Not a real
+// password hash for any account — its only job is to give bcrypt.compare()
+// something to actually do when the requested email doesn't exist, so a
+// login attempt against an unregistered email takes roughly the same time
+// as one against a real email with a wrong password. Without this, an
+// unregistered-email login returns almost instantly (no bcrypt call at
+// all) while a real-email-wrong-password one takes ~100ms (bcrypt's cost
+// factor), and that gap is large and consistent enough to let someone
+// enumerate which emails are registered purely by timing responses.
+const DUMMY_PASSWORD_HASH = '$2a$10$PShjwZKll2CdbylEpvThru9t6XBolnJ0isiGDjWnxkW2eVQGIkCLa';
+
 // POST /api/auth/signup — create a new student or hoster account, unverified until they click the email link
 router.post('/signup', async (req, res) => {
   try {
@@ -101,13 +112,15 @@ router.post('/login', loginRateLimit, async (req, res) => {
     }
 
     const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
-    if (rows.length === 0) {
-      return res.status(401).json({ error: 'Invalid email or password.' });
-    }
+    const user = rows[0] || null;
 
-    const user = rows[0];
-    const match = await bcrypt.compare(password, user.password_hash);
-    if (!match) {
+    // Always run bcrypt.compare, even when there's no such user — comparing
+    // against DUMMY_PASSWORD_HASH in that case, purely so this call takes
+    // about the same time either way. See the comment on
+    // DUMMY_PASSWORD_HASH above for why that matters.
+    const match = await bcrypt.compare(password, user ? user.password_hash : DUMMY_PASSWORD_HASH);
+
+    if (!user || !match) {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 

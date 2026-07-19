@@ -34,34 +34,6 @@ function isValidImageSignature(buffer) {
   return false;
 }
 
-// Wraps upload.single so multer errors (too large, wrong type) come back as
-// a clean JSON 400, validates the real file signature, then uploads to
-// Cloudinary and attaches the result (cloudinaryUrl/cloudinaryPublicId) onto
-// req.file for the route handler to use.
-function uploadSingleImage(req, res, next) {
-  upload.single('image')(req, res, async (err) => {
-    if (err) {
-      return res.status(400).json({ error: err.message || 'Could not upload image.' });
-    }
-
-    if (!req.file) return next();
-
-    if (!isValidImageSignature(req.file.buffer)) {
-      return res.status(400).json({ error: 'That file does not look like a valid image.' });
-    }
-
-    try {
-      const result = await uploadBufferToCloudinary(req.file.buffer, 'kellylodge/listings');
-      req.file.cloudinaryUrl = result.secure_url;
-      req.file.cloudinaryPublicId = result.public_id;
-      next();
-    } catch (uploadErr) {
-      console.error('Cloudinary upload failed:', uploadErr);
-      res.status(502).json({ error: 'Could not upload image right now. Please try again.' });
-    }
-  });
-}
-
 // Same idea, but for a hostel's photo gallery, accepts up to 5 files under
 // the "photos" field, each validated and uploaded to Cloudinary in parallel.
 function uploadMultipleImages(req, res, next) {
@@ -95,4 +67,4 @@ function uploadMultipleImages(req, res, next) {
   });
 }
 
-module.exports = { uploadSingleImage, uploadMultipleImages };
+module.exports = { uploadMultipleImages };

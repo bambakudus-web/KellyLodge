@@ -68,8 +68,6 @@ kellylodge/
 │   ├── payout-settings.html    # hoster: connect a bank account for automatic payouts
 │   ├── mybookings.html         # student: own bookings, pay/cancel
 │   ├── favorites.html          # student: shortlisted listings
-│   ├── messages.html           # full-page messaging inbox (a floating chat widget also
-│   │                             covers this on every page — see js/chat-widget.js)
 │   ├── payment-callback.html   # where Paystack redirects after checkout
 │   ├── admin.html              # admin dashboard
 │   ├── css/style.css           # single stylesheet, whole site

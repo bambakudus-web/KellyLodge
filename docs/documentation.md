@@ -37,7 +37,7 @@ Students at Kumasi Technical University who need off-campus accommodation curren
 - An optional "walking distance from campus" field per listing, shown as a badge
 - **Online payment** — a student books a room type (holding it for 72 hours) and pays the full year's rent through Paystack. Payment confirmation is self-healing: it's checked independently by the webhook, the payment-callback page, and every time My Bookings loads, so a booking can't get permanently stuck as unpaid just because one notification was missed.
 - **Automatic hoster payouts** — a hoster connects their own bank account once (via Paystack account resolution, confirming the real account holder name back to them), after which every future payment automatically splits: the hoster's share goes straight to their account, the platform keeps a configurable fee (`PLATFORM_FEE_PERCENT`, default 10%).
-- **In-app messaging** — a student and a hoster can message each other about a specific listing, in real time (Socket.io), from either a floating chat widget available on every page or a dedicated full-page inbox. Either participant can delete a whole conversation (cascades to its messages, and pushes live to the other participant if they have it open).
+- **In-app messaging** — a student and a hoster can message each other about a specific listing, in real time (Socket.io), from a floating chat widget available on every page. Either participant can delete a whole conversation (cascades to its messages, and pushes live to the other participant if they have it open).
 - Reviews and star ratings — restricted to students who have an actual **paid, completed** booking for that listing (tracked independently of the booking row itself, so a booking being deleted later never revokes an already-earned review); one review per student per listing (resubmitting updates it)
 - Favorites — students can save/shortlist listings and manage them from a dedicated page
 - Hoster analytics — a view counter per listing, and aggregated rating, both visible on the hoster's dashboard
@@ -279,7 +279,6 @@ Permissions are enforced server-side in `middleware/auth.js` (`requireLogin`, `r
 | Payout settings | payout-settings.html + js/payout-settings.js | Hoster/Admin only | Connect a bank account for automatic payouts |
 | My Bookings | mybookings.html + js/bookings.js | Student only | Own bookings, pay/cancel, shows the assigned room number once paid |
 | Favorites | favorites.html + js/favorites.js | Student only | Shortlisted listings, remove option |
-| Messages | messages.html + js/messages.js | Logged in | Full-page conversation list + thread view, real-time via Socket.io |
 | Payment callback | payment-callback.html + js/payment-callback.js | Student | Where Paystack redirects after checkout; polls payment status |
 | Admin | admin.html + js/admin.js | Admin only | Stats, user management, listing moderation |
 
