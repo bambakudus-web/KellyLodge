@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
-const { requireRole } = require('../middleware/auth');
+const { requireLogin, requireRole } = require('../middleware/auth');
 const { sendBookingNotification, sendPaymentReminderEmail } = require('../utils/email');
 const { sendBookingSMSToOwner, sendBookingSMSToStudent } = require('../utils/sms');
 const { reconcileByReference } = require('../utils/reconcilePayment');
@@ -281,6 +281,70 @@ router.delete('/:id', requireRole('student', 'hoster', 'admin'), async (req, res
     res.status(500).json({ error: 'Could not delete the booking.' });
   } finally {
     connection.release();
+  }
+});
+
+// GET /api/bookings/:id/receipt — a printable payment receipt for a paid
+// booking. Available to the student who paid, the hoster who owns the
+// listing, or an admin — nobody else can pull up someone else's receipt.
+router.get('/:id/receipt', requireLogin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const requester = req.session.user;
+
+    const [rows] = await pool.query(
+      `SELECT bookings.id, bookings.created_at, bookings.payment_status, bookings.paid_at,
+              bookings.paystack_reference, bookings.student_id,
+              room_types.room_type, room_types.price, rooms.room_number,
+              listings.id AS listing_id, listings.title, listings.area, listings.owner_id,
+              student.name AS student_name, student.email AS student_email, student.phone AS student_phone,
+              owner.name AS owner_name
+       FROM bookings
+       JOIN room_types ON bookings.room_type_id = room_types.id
+       LEFT JOIN rooms ON bookings.room_id = rooms.id
+       JOIN listings ON bookings.listing_id = listings.id
+       JOIN users AS student ON bookings.student_id = student.id
+       JOIN users AS owner ON listings.owner_id = owner.id
+       WHERE bookings.id = ?`,
+      [id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Booking not found.' });
+    }
+
+    const b = rows[0];
+    const isOwnStudentBooking = requester.role === 'student' && b.student_id === requester.id;
+    const isOwningHoster = requester.role === 'hoster' && b.owner_id === requester.id;
+    const isAdmin = requester.role === 'admin';
+
+    if (!isOwnStudentBooking && !isOwningHoster && !isAdmin) {
+      return res.status(403).json({ error: 'You do not have permission to view this receipt.' });
+    }
+
+    if (b.payment_status !== 'paid') {
+      return res.status(400).json({ error: 'A receipt is only available once a booking has been paid for.' });
+    }
+
+    res.json({
+      receipt_no: `KL-${String(b.id).padStart(6, '0')}`,
+      booking_id: b.id,
+      booked_at: b.created_at,
+      paid_at: b.paid_at,
+      paystack_reference: b.paystack_reference,
+      listing_title: b.title,
+      area: b.area,
+      room_type: b.room_type,
+      room_number: b.room_number,
+      price: b.price,
+      student_name: b.student_name,
+      student_email: b.student_email,
+      student_phone: b.student_phone,
+      owner_name: b.owner_name,
+    });
+  } catch (err) {
+    console.error('Error building receipt:', err);
+    res.status(500).json({ error: 'Could not generate the receipt.' });
   }
 });
 

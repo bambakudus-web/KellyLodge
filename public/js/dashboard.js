@@ -91,6 +91,7 @@ function bookingsSectionHTML(bookings) {
       <div class="bri-side">
         <div class="price">GH₵ ${Number(b.price).toLocaleString()}</div>
         <div class="bri-date">${formatDate(b.created_at)}</div>
+        ${b.payment_status === 'paid' ? `<a href="/receipt.html?id=${b.id}" class="btn btn-gold btn-small">View Receipt</a>` : ''}
         <button class="btn btn-danger btn-small booking-delete-btn" data-booking-id="${b.id}">Delete</button>
       </div>
     </div>

@@ -71,6 +71,7 @@ function renderBookings(bookings) {
       <div class="booking-actions">
         ${b.payment_status === 'pending' ? `<button class="btn btn-gold btn-small pay-btn" data-booking-id="${b.id}">Pay now</button>` : ''}
         ${b.payment_status === 'pending' ? `<button class="btn btn-danger btn-small cancel-btn" data-booking-id="${b.id}">Cancel</button>` : ''}
+        ${b.payment_status === 'paid' ? `<a href="/receipt.html?id=${b.id}" class="btn btn-gold btn-small">View Receipt</a>` : ''}
       </div>
     </div>
   `).join('');

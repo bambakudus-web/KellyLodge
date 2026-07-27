@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Receipt | KellyLodge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    .receipt-wrap {
+      max-width: 640px;
+      margin: 48px auto;
+      padding: 0 24px;
+    }
+    .receipt-card {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 48px;
+      box-shadow: 0 2px 20px rgba(19, 26, 46, 0.08);
+    }
+    .receipt-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid var(--ink);
+      padding-bottom: 20px;
+      margin-bottom: 24px;
+    }
+    .receipt-head .logo {
+      font-family: 'Fraunces', serif;
+      font-size: 1.6rem;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .receipt-head .logo .accent { color: var(--brass-dark); }
+    .receipt-head .receipt-meta {
+      text-align: right;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--ink-soft);
+    }
+    .receipt-head .receipt-meta strong { color: var(--ink); font-size: 1rem; }
+    .receipt-status {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 3px 10px;
+      border-radius: 3px;
+      background: var(--success-bg);
+      color: var(--success);
+      font-weight: 700;
+      font-size: 0.75rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .receipt-section { margin-bottom: 22px; }
+    .receipt-section h4 {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      margin: 0 0 8px 0;
+    }
+    .receipt-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 0.95rem;
+    }
+    .receipt-row:last-child { border-bottom: none; }
+    .receipt-row .label { color: var(--ink-soft); }
+    .receipt-row .value { color: var(--ink); font-weight: 600; text-align: right; }
+    .receipt-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 2px solid var(--ink);
+    }
+    .receipt-total .label { font-family: 'Fraunces', serif; font-size: 1.1rem; }
+    .receipt-total .value {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--brass-dark);
+    }
+    .receipt-footer-note {
+      margin-top: 28px;
+      font-size: 0.8rem;
+      color: var(--ink-soft);
+      text-align: center;
+      line-height: 1.5;
+    }
+    .receipt-actions {
+      max-width: 640px;
+      margin: 0 auto 40px auto;
+      padding: 0 24px;
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+    @media print {
+      .site-header, .site-footer, .receipt-actions { display: none !important; }
+      .receipt-wrap { margin: 0; padding: 0; max-width: 100%; }
+      .receipt-card { box-shadow: none; border: none; }
+      body { background: #fff; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="logo">Kelly<span class="accent">Lodge</span></div>
+    <nav id="site-nav"></nav>
+  </header>
+
+  <div class="receipt-wrap">
+    <div id="receipt-container">
+      <p class="state-message">Loading receipt…</p>
+    </div>
+  </div>
+
+  <div class="receipt-actions" id="receipt-actions" style="display:none;">
+    <button class="btn btn-gold" id="print-btn">Print / Save as PDF</button>
+    <a href="/mybookings.html" class="btn" style="background:transparent;border:1px solid var(--ink-soft);color:var(--ink);">Back to My Bookings</a>
+  </div>
+
+  <footer class="site-footer">
+    <strong>KellyLodge</strong>, a student project for Kumasi Technical University.
+  </footer>
+
+  <script src="/js/nav.js"></script>
+  <script src="/js/area.js"></script>
+  <script src="/js/receipt.js"></script>
+</body>
+</html>
