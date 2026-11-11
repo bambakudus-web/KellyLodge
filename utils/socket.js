@@ -3,14 +3,15 @@
 // whoever is logged into that browser tab, no separate login step needed.
 const { Server } = require('socket.io');
 const pool = require('../db');
+const { configuredOrigins } = require('./origins');
 
 function initSocket(httpServer, sessionMiddleware) {
-  const allowedOrigins = [process.env.APP_URL, 'http://localhost:3000'].filter(Boolean);
+  const allowedOrigins = configuredOrigins();
 
   const io = new Server(httpServer, {
     cors: {
       origin(origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (!origin || allowedOrigins.includes(String(origin).replace(/\/+$/, '').toLowerCase())) {
           callback(null, true);
         } else {
           callback(new Error('Not allowed by CORS'));

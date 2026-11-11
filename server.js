@@ -18,6 +18,7 @@ const messagesRouter = require('./routes/messages');
 const { expirePendingBookings } = require('./utils/expireBookings');
 const initSocket = require('./utils/socket');
 const { csrfProtection } = require('./middleware/csrf');
+const { isAllowedOrigin } = require('./utils/origins');
 
 if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
   console.error('FATAL: SESSION_SECRET must be set in production. Refusing to start.');
@@ -35,17 +36,17 @@ app.set('trust proxy', 1); // needed for secure cookies behind Railway's proxy
 // webhook, curl/Postman) are still let through — there's nothing to check
 // them against, and they're not the browser-cookie-based attack this is
 // guarding against anyway.
-const allowedOrigins = [process.env.APP_URL, 'http://localhost:3000'].filter(Boolean);
-
-app.use(cors({
-  origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
+// APP_URL, ALLOWED_ORIGINS (comma separated), Railway's own public domain, and
+// the host actually serving the request are all accepted. See utils/origins.js.
+app.use(cors((req, callback) => {
+  const origin = req.headers.origin;
+  const allowed = isAllowedOrigin(origin, req.headers.host);
+  if (!allowed) {
+    // Reject quietly instead of throwing, so a blocked origin is a normal
+    // CORS refusal and not a 500 error with a stack trace in the logs.
+    console.warn(`CORS blocked origin: ${origin}`);
+  }
+  callback(null, { origin: allowed, credentials: true });
 }));
 app.use(express.json({
   verify: (req, res, buf) => {
